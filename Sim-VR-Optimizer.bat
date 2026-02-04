@@ -162,7 +162,7 @@ if "%LAUNCH_METHOD%"=="STEAM" (
     start "" "steam://run/%STEAM_APPID%"
 ) else if "%LAUNCH_METHOD%"=="STORE" (
     echo [%TIME%] [LAUNCH] Store-URI: !STORE_URI! >> "%LOGFILE%"
-    powershell -NoProfile -Command "explorer.exe $env:STORE_URI"
+    powershell -NoProfile -Command "Start-Process $env:STORE_URI -ArgumentList ' -FastLaunch'"
 ) else if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_BIN="
     for %%D in (C D E F G H I J) do (
@@ -710,5 +710,6 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
 
 
