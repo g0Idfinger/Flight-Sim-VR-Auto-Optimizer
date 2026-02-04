@@ -125,7 +125,7 @@ call :ADMIN_START
 :: [1/4] PREP (driven by config)
 :: -----------------------------
 echo [1/4] Preparing system...
-powercfg /setactive e9a42b02-d5df-448d-aa00-03f14749eb61 >nul 2>&1
+call :ensure_ultimate
 echo [%TIME%] [PREP] Power Plan active: %VERSION_NAME% >> "%LOGFILE%"
 
 :: Built-in app kills (toggleable)
@@ -233,6 +233,43 @@ echo ============================================================
 timeout /t 15 >nul
 tasklist /NH /FI "IMAGENAME eq %GAME_EXE%" | find /i "%GAME_EXE%" >nul
 if not errorlevel 1 goto WAIT_EXIT
+
+:: -----------------------------
+:: Ensure Ultimate Performance power plan is active
+:: - If present: activate built-in GUID
+:: - If absent:  install (duplicatescheme), capture new GUID, activate
+:: - On failure: fall back to High performance
+:: -----------------------------
+:ensure_ultimate
+setlocal EnableDelayedExpansion
+set "ULT_BUILTIN=e9a42b02-d5df-448d-aa00-03f14749eb61"
+set "ULT_GUID="
+
+rem Check if the built-in Ultimate plan exists already
+powercfg /list | findstr /I "%ULT_BUILTIN%" >nul
+if not errorlevel 1 (
+    set "ULT_GUID=%ULT_BUILTIN%"
+) else (
+    rem Try to create Ultimate by duplicating the built-in scheme; parse returned GUID
+    for /f "tokens=3 delims=:()" %%G in ('
+        powercfg -duplicatescheme %ULT_BUILTIN% 2^>nul ^| findstr /I "GUID"
+    ') do (
+        set "ULT_GUID=%%G"
+    )
+)
+
+if defined ULT_GUID (
+    powercfg /setactive !ULT_GUID! >nul 2>&1
+    if not errorlevel 1 (
+        echo [%TIME%] [PREP] Power Plan active: Ultimate Performance (!ULT_GUID!)>>"%LOGFILE%"
+        endlocal & goto :eof
+    )
+)
+
+rem If we got here, the Ultimate activation failed—fallback to High performance
+echo [%TIME%] [PREP] Ultimate unavailable/failed; falling back to High Performance>>"%LOGFILE%"
+powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
+endlocal & goto :eof
 
 :: -----------------------------
 :: [4/4] RESTORE (driven by config)
@@ -667,6 +704,7 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
 
 
 
