@@ -1,4 +1,3 @@
-
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
@@ -711,3 +710,4 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
