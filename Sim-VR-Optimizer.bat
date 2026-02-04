@@ -83,7 +83,7 @@ if "%choice%"=="1" (
     set "STEAM_APPID=223750" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Steam)"
 ) else if "%choice%"=="5" (
     set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 Store"
-    for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless' -or $_.Name -match 'MicrosoftFlightSimulator' -or $_.Name -match 'FlightSimulator') -and $_.Name -notmatch '2020' }; if($p){ $p.PackageFamilyName }" 2^>nul`) do set "STORE_URI=shell:AppsFolder\%%A^!App"
+    for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless' -or $_.Name -match 'MicrosoftFlightSimulator' -or $_.Name -match 'FlightSimulator') -and $_.Name -notmatch '2020' }; if($p){ $p.PackageFamilyName }" 2^>nul`) do set "STORE_URI=shell:AppsFolder\%%A^!App -FastLaunch"
     if "!STORE_URI!"=="" set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App -FastLaunch"
 ) else if "%choice%"=="6" (
     set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe^!App -FastLaunch"
@@ -127,7 +127,6 @@ call :ADMIN_START
 echo [1/4] Preparing system...
 for /f "tokens=3 delims=:()" %%G in ('powercfg /getactivescheme ^| findstr /I "GUID"') do set "PREV_PWR=%%G"
 call :ensure_ultimate
-echo [%TIME%] [PREP] Power Plan active: %VERSION_NAME% >> "%LOGFILE%"
 
 :: Built-in app kills (toggleable)
 call :kill_if "OneDrive.exe"       "!KILL_ONEDRIVE!"       "OneDrive killed"
@@ -246,12 +245,12 @@ setlocal EnableDelayedExpansion
 set "ULT_BUILTIN=e9a42b02-d5df-448d-aa00-03f14749eb61"
 set "ULT_GUID="
 
-rem Check if the built-in Ultimate plan exists already
+:: Check if the built-in Ultimate plan exists already
 powercfg /list | findstr /I "%ULT_BUILTIN%" >nul
 if not errorlevel 1 (
     set "ULT_GUID=%ULT_BUILTIN%"
 ) else (
-    rem Try to create Ultimate by duplicating the built-in scheme; parse returned GUID
+    :: Try to create Ultimate by duplicating the built-in scheme; parse returned GUID
     for /f "tokens=3 delims=:()" %%G in ('
         powercfg -duplicatescheme %ULT_BUILTIN% 2^>nul ^| findstr /I "GUID"
     ') do (
@@ -267,7 +266,7 @@ if defined ULT_GUID (
     )
 )
 
-rem If we got here, the Ultimate activation failed—fallback to High performance
+:: If we got here, the Ultimate activation failed—fallback to High performance
 echo [%TIME%] [PREP] Ultimate unavailable/failed; falling back to High Performance>>"%LOGFILE%"
 powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
 endlocal & goto :eof
@@ -711,6 +710,7 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
 
 
 
