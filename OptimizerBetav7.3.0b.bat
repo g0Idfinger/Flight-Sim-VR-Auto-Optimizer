@@ -422,7 +422,7 @@ goto :eof
 :: -----------------------------
 :kill_custom
 if not defined CUST_K_COUNT goto :eof
-for /l %%I in (1,1)!CUST_K_COUNT! do (
+for /l %%I in (1,1,!CUST_K_COUNT!) do (
     set "proc=!CUST_K_%%I!"
     if not "!proc!"=="" (
         taskkill /f /im "!proc!" /t >nul 2>&1 && echo [%TIME%] [PREP] Custom kill: !proc! >> "%LOGFILE%"
@@ -487,7 +487,7 @@ goto :eof
 :: -----------------------------
 :restart_custom
 if not defined CUST_R_COUNT goto :eof
-for /l %%I in (1,1)!CUST_R_COUNT! do (
+for /l %%I in (1,1,!CUST_R_COUNT!) do (
     set "_cmd=!CUST_R_CMD_%%I!"
     set "_arg=!CUST_R_ARGS_%%I!"
     if not "!_cmd!"=="" (
@@ -667,3 +667,4 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
