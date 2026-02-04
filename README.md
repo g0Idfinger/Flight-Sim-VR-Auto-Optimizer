@@ -5,7 +5,7 @@
 - Copy the code into a text file and save it as VR_Optimizer.bat.
 - Right-click -> Run as Administrator (Required for CPU priority and service management).
 - Select your Simulator from the menu and enjoy your flight! ✈️
-__
+---
 ## ⚠️ Disclaimer & Known Issues
 Please read before use:
 - Antivirus/Windows Defender: Some scanners might flag .bat scripts that use PowerShell commands as a "False Positive." This script is transparent—you can inspect every line of code in Notepad.
