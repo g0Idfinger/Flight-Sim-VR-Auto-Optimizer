@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - V7.2.1 BETA
+:: UNIVERSAL SIM VR OPTIMIZER - V7.2.2 BETA Stable
 :: ============================================================
 
 :MENU
@@ -214,6 +214,7 @@ echo.
 echo Operation complete. Returning to main menu...
 timeout /t 5 >nul
 goto MENU
+
 
 
 
