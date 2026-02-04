@@ -180,7 +180,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 echo ============================================================
 echo %VERSION_NAME% RUNNING - DO NOT CLOSE THIS WINDOW
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; Write-Host ' and ' -NoNewline; Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red;"
+  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; Write-Host ' and ' -NoNewline; Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red; Write-Host ' and ' -NoNewline; Write-Host ' goldfinger ' -ForegroundColor Yellow -BackgroundColor Red;"
 echo ============================================================
 
 :WAIT_EXIT
@@ -588,3 +588,4 @@ goto :eof
 set "_line=%~1"
 for /f "tokens=1* delims==" %%a in ('set %_line% 2^>nul') do >>"%CFG%" echo %%a=%%b
 goto :eof
+
