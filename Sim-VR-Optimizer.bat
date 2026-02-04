@@ -3,34 +3,34 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.0b)
-:: - Adds persistent configuration for which apps are killed
-::   and which apps are restarted on restore.
-:: - Stores settings in vr_opt.cfg next to this script.
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.2b)
+:: - Persistent configuration for which apps are killed/restored
+:: - DEFAULT_SIM + AUTO_RUN_ON_START
+:: - Config stored in vr_opt.cfg next to this script
 :: ============================================================
 
 :: Paths & Files
 set "SCRIPT_DIR=%~dp0"
 set "LOGFILE=%SCRIPT_DIR%sim_launcher.log"
 set "CFG=%SCRIPT_DIR%vr_opt.cfg"
+
 :: -----------------------------
 :: Load (or create) configuration
 :: -----------------------------
 call :load_config
 
-if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
-if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
-
-set "MARK=--- CFG CHECK ---"
-echo %MARK%
-echo Using CFG: "%CFG%"
-set DEFAULT_SIM
-set AUTO_RUN_ON_START
-set CUST_K_COUNT
-set CUST_R_COUNT
-echo %MARK%
-pause
-
+:: -----------------------------
+:: Optional auto-run on start
+:: -----------------------------
+if /i "!AUTO_RUN_ON_START!"=="YES" (
+    if defined DEFAULT_SIM (
+        call :RESOLVE_SIM "!DEFAULT_SIM!"
+        if defined choice (
+            call :ADMIN_START
+            goto PREP_FLOW
+        )
+    )
+)
 
 :: -----------------------------
 :: Main Menu
@@ -41,18 +41,62 @@ echo ============================================================
 echo        VR AUTO-OPTIMIZER - MAIN MENU
 echo ============================================================
 echo.
-echo [1] Launch Simulator
-echo [2] Configure App Controls (kill/restart + custom)
+echo [1] Launch Simulator  ^(uses DEFAULT_SIM if set; otherwise prompts^)
+echo [2] Configure App Controls - kill/restart + custom
 echo [X] Exit
 echo.
 set /p _main_choice="Selection: "
-if /i "%_main_choice%"=="1" goto MENU
+if /i "%_main_choice%"=="1" goto LAUNCH_DEFAULT_OR_SET
 if /i "%_main_choice%"=="2" goto CONFIG_MENU
 if /i "%_main_choice%"=="X" exit /b
 goto MAIN_MENU
 
 :: -----------------------------
-:: Original Simulator Menu
+:: Launch default if set; else prompt to set, then launch
+:: -----------------------------
+:LAUNCH_DEFAULT_OR_SET
+if defined DEFAULT_SIM (
+    call :RESOLVE_SIM "!DEFAULT_SIM!"
+    if not defined choice (
+        echo [!] DEFAULT_SIM value "!DEFAULT_SIM!" is invalid. Press any key to set a valid one...
+        pause >nul
+        goto SET_DEFAULT_SIM_AND_LAUNCH
+    )
+    call :ADMIN_START
+    goto PREP_FLOW
+) else (
+    goto SET_DEFAULT_SIM_AND_LAUNCH
+)
+
+:: -----------------------------
+:: Resolve sim by selection (1..7)
+:: -----------------------------
+:RESOLVE_SIM
+set "choice=%~1"
+set "LAUNCH_METHOD=STEAM"
+
+if "%choice%"=="1" (
+    set "STEAM_APPID=2537590" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Steam)"
+) else if "%choice%"=="2" (
+    set "STEAM_APPID=1250410" & set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Steam)"
+) else if "%choice%"=="3" (
+    set "STEAM_APPID=223750" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Steam)"
+) else if "%choice%"=="5" (
+    set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 Store"
+    for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless' -or $_.Name -match 'MicrosoftFlightSimulator' -or $_.Name -match 'FlightSimulator') -and $_.Name -notmatch '2020' }; if($p){ $p.PackageFamilyName }" 2^>nul`) do set "STORE_URI=shell:AppsFolder\%%A^!App"
+    if "!STORE_URI!"=="" set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App -FastLaunch"
+) else if "%choice%"=="6" (
+    set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe^!App -FastLaunch"
+    set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
+) else if "%choice%"=="7" (
+    set "LAUNCH_METHOD=DCS_STORE" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Standalone)"
+) else (
+    set "choice="
+)
+goto :eof
+
+:: -----------------------------
+:: Original Simulator Menu (manual picker)
 :: -----------------------------
 :MENU
 cls
@@ -71,46 +115,18 @@ set /p choice="Selection (1-7/B/X): "
 if /i "%choice%"=="X" exit /b
 if /i "%choice%"=="B" goto MAIN_MENU
 
-set "LAUNCH_METHOD=STEAM"
-if "%choice%"=="1" (
-    set "STEAM_APPID=2537590" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Steam)"
-) else if "%choice%"=="2" (
-    set "STEAM_APPID=1250410" & set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Steam)"
-) else if "%choice%"=="3" (
-    set "STEAM_APPID=223750" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Steam)"
-) else if "%choice%"=="5" (
-    set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 Store"
-    for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless' -or $_.Name -match 'MicrosoftFlightSimulator' -or $_.Name -match 'FlightSimulator') -and $_.Name -notmatch '2020' }; if($p){ $p.PackageFamilyName }" 2^>nul`) do set "STORE_URI=shell:AppsFolder\%%A^!App"
-    if "!STORE_URI!"=="" set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App"
-) else if "%choice%"=="6" (
-    set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe^!App"
-    set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
-) else if "%choice%"=="7" (
-    set "LAUNCH_METHOD=DCS_STORE" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Standalone)"
-) else ( goto MENU )
+call :RESOLVE_SIM "%choice%"
+if not defined choice goto MENU
 
-:: -----------------------------
-:: ADMIN CHECK & LOG START
-:: -----------------------------
-if exist "%LOGFILE%" (
-    set "count=0"
-    for /f "usebackq" %%A in (`find /c /i "[SESSION START]" "%LOGFILE%"`) do set "count=%%A"
-    for %%I in ("%LOGFILE%") do set "fsize=%%~zI"
-    if !count! GEQ 10 ( move /y "%LOGFILE%" "%LOGFILE%.old" >nul & echo [%DATE% %TIME%] [LOG] Rotation triggered >> "%LOGFILE%" )
-    if !fsize! GTR 2097152 ( move /y "%LOGFILE%" "%LOGFILE%.old" >nul )
-)
-echo ============================================================ >> "%LOGFILE%"
-echo [%DATE% %TIME%] [SESSION START] Target: %VERSION_NAME% >> "%LOGFILE%"
+call :ADMIN_START
 
-net session >nul 2>&1 || ( powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -ArgumentList 'LAUNCH %choice%' -Verb RunAs" & exit /b )
-if /i "%~1"=="LAUNCH" if not "%~2"=="" set "choice=%~2"
-cd /d "%SCRIPT_DIR%"
-
+:PREP_FLOW
 :: -----------------------------
 :: [1/4] PREP (driven by config)
 :: -----------------------------
 echo [1/4] Preparing system...
-powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
+for /f "tokens=3 delims=:()" %%G in ('powercfg /getactivescheme ^| findstr /I "GUID"') do set "PREV_PWR=%%G"
+call :ensure_ultimate
 echo [%TIME%] [PREP] Power Plan active: %VERSION_NAME% >> "%LOGFILE%"
 
 :: Built-in app kills (toggleable)
@@ -125,13 +141,13 @@ call :kill_if "iCloudDrive.exe"    "!KILL_ICLOUDDRIVE!"    "iCloudDrive killed"
 :: Custom app kills (CUST_K_1..N)
 call :kill_custom
 
-:: Optional service/network prep (unchanged from your script)
+:: Optional service/network prep
 net stop SysMain /y >nul 2>&1
 net stop Spooler /y >nul 2>&1
 nvidia-smi -pm 1 >nul 2>&1
 ipconfig /flushdns >nul
 
-:: [2/4] VR – keep your logic
+:: [2/4] VR
 if exist "C:\Program Files\Virtual Desktop Streamer\VirtualDesktop.Streamer.exe" (
     echo [2/4] Launching VR...
     echo [%TIME%] [VR] Streamer started >> "%LOGFILE%"
@@ -139,7 +155,7 @@ if exist "C:\Program Files\Virtual Desktop Streamer\VirtualDesktop.Streamer.exe"
     timeout /t 8 >nul
 )
 
-:: [3/4] LAUNCH – keep your logic
+:: [3/4] LAUNCH
 echo [3/4] Launching %VERSION_NAME%...
 echo [%TIME%] [LAUNCH] Method: %LAUNCH_METHOD% - Target: %GAME_EXE% >> "%LOGFILE%"
 
@@ -157,7 +173,7 @@ if "%LAUNCH_METHOD%"=="STEAM" (
     if defined DCS_BIN ( pushd "!DCS_BIN:\DCS.exe=!" & start "" "DCS.exe" & popd )
 )
 
-:: DETECTION (unchanged + small tidy)
+:: DETECTION
 set /a retry_count=0
 :WAIT_GAME
 set "ACTIVE_EXE="
@@ -182,24 +198,79 @@ goto WAIT_GAME
 :GAME_DETECTED
 echo [!] %GAME_EXE% detected. Optimizing Performance...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$n='%GAME_EXE%'.Replace('.exe',''); $p=Get-Process $n -ErrorAction SilentlyContinue; if($p){ " ^
-    "try { $p.PriorityClass='High'; " ^
-    "$cpu=Get-CimInstance Win32_Processor; $cores=$cpu.NumberOfCores; $logical=$cpu.NumberOfLogicalProcessors; " ^
-    "$mask=[int64]0; if($logical -gt $cores){ for($i=0; $i -lt $cores; $i++){ $mask+=[int64][math]::Pow(2,$i*2) } } " ^
-    "else { for($i=0; $i -lt $cores; $i++){ $mask+=[int64][math]::Pow(2,$i) } }; " ^
-    "$p.ProcessorAffinity=[IntPtr]$mask; Write-Host 'Optimized Performance' -ForegroundColor Cyan " ^
-    "} catch { Write-Host 'Affinity partially applied' -ForegroundColor Yellow } }"
+  "$n='%GAME_EXE%'.Replace('.exe','');" ^
+  "$p=Get-Process $n -ErrorAction SilentlyContinue;" ^
+  "if($p){" ^
+  "  try {" ^
+  "    $p.PriorityClass='High';" ^
+  "    $cpu=Get-CimInstance Win32_Processor;" ^
+  "    $cores=$cpu.NumberOfCores;" ^
+  "    $logical=$cpu.NumberOfLogicalProcessors;" ^
+  "    $mask=[int64]0;" ^
+  "    if($logical -gt $cores){" ^
+  "      for($i=0; $i -lt $cores; $i++){ $mask += [int64][math]::Pow(2,$i*2) }" ^
+  "    } else {" ^
+  "      for($i=0; $i -lt $cores; $i++){ $mask += [int64][math]::Pow(2,$i) }" ^
+  "    };" ^
+  "    $p.ProcessorAffinity=[IntPtr]$mask;" ^
+  "    Write-Host 'Optimized Performance' -ForegroundColor Cyan" ^
+  "  } catch { Write-Host 'Affinity partially applied' -ForegroundColor Yellow }" ^
+  "}"
 
 echo ============================================================
 echo %VERSION_NAME% RUNNING - DO NOT CLOSE THIS WINDOW
+setlocal DisableDelayedExpansion
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; Write-Host ' and ' -NoNewline; Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red; Write-Host ' and ' -NoNewline; Write-Host ' goldfinger ' -ForegroundColor Yellow -BackgroundColor Red;"
+  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; " ^
+  "Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
+  "Write-Host ' and ' -NoNewline; " ^
+  "Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
+  "Write-Host ' and ' -NoNewline; " ^
+  "Write-Host ' g0|df!ng3R ' -ForegroundColor Red -BackgroundColor Yellow;"
+endlocal
 echo ============================================================
 
 :WAIT_EXIT
 timeout /t 15 >nul
 tasklist /NH /FI "IMAGENAME eq %GAME_EXE%" | find /i "%GAME_EXE%" >nul
 if not errorlevel 1 goto WAIT_EXIT
+
+:: -----------------------------
+:: Ensure Ultimate Performance power plan is active
+:: - If present: activate built-in GUID
+:: - If absent:  install (duplicatescheme), capture new GUID, activate
+:: - On failure: fall back to High performance
+:: -----------------------------
+:ensure_ultimate
+setlocal EnableDelayedExpansion
+set "ULT_BUILTIN=e9a42b02-d5df-448d-aa00-03f14749eb61"
+set "ULT_GUID="
+
+rem Check if the built-in Ultimate plan exists already
+powercfg /list | findstr /I "%ULT_BUILTIN%" >nul
+if not errorlevel 1 (
+    set "ULT_GUID=%ULT_BUILTIN%"
+) else (
+    rem Try to create Ultimate by duplicating the built-in scheme; parse returned GUID
+    for /f "tokens=3 delims=:()" %%G in ('
+        powercfg -duplicatescheme %ULT_BUILTIN% 2^>nul ^| findstr /I "GUID"
+    ') do (
+        set "ULT_GUID=%%G"
+    )
+)
+
+if defined ULT_GUID (
+    powercfg /setactive !ULT_GUID! >nul 2>&1
+    if not errorlevel 1 (
+        echo [%TIME%] [PREP] Power Plan active: Ultimate Performance (!ULT_GUID!)>>"%LOGFILE%"
+        endlocal & goto :eof
+    )
+)
+
+rem If we got here, the Ultimate activation failed—fallback to High performance
+echo [%TIME%] [PREP] Ultimate unavailable/failed; falling back to High Performance>>"%LOGFILE%"
+powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
+endlocal & goto :eof
 
 :: -----------------------------
 :: [4/4] RESTORE (driven by config)
@@ -211,7 +282,13 @@ taskkill /f /im VirtualDesktop.Streamer.exe >nul 2>&1
 net start SysMain /y >nul 2>&1
 net start Spooler /y >nul 2>&1
 nvidia-smi -pm 0 >nul 2>&1
-powercfg /setactive e9a42b02-d5df-448d-aa00-03f14749eb61
+
+if defined PREV_PWR (
+    powercfg /setactive %PREV_PWR% >nul 2>&1
+) else (
+    powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e >nul 2>&1
+)
+
 echo [%TIME%] [RESTORE] System reverted >> "%LOGFILE%"
 
 :: Built-in restarts
@@ -255,6 +332,10 @@ echo  [10] Restart OneDrive = !RESTART_ONEDRIVE!
 echo  [11] Restart CCleaner = !RESTART_CCLEANER!
 echo  [12] Restart iCloud   = !RESTART_ICLOUD!
 echo.
+echo DEFAULTS:
+echo  [D] Set default sim (current: !DEFAULT_SIM!)  ^<-- used by Main Menu [1]
+echo  [A] Toggle auto-run on start (AUTO_RUN_ON_START = !AUTO_RUN_ON_START!)
+echo.
 echo CUSTOM APPS:
 echo  [C] Manage custom apps (kill/restart)
 echo.
@@ -264,6 +345,8 @@ set /p _cfg_choice="Selection: "
 if /i "%_cfg_choice%"=="S" ( call :save_config & goto MAIN_MENU )
 if /i "%_cfg_choice%"=="B" ( goto MAIN_MENU )
 if /i "%_cfg_choice%"=="C" ( goto CUSTOM_MENU )
+if /i "%_cfg_choice%"=="D" ( goto SET_DEFAULT_SIM )
+if /i "%_cfg_choice%"=="A" ( call :toggle AUTO_RUN_ON_START & goto CONFIG_MENU )
 
 if "%_cfg_choice%"=="1"  call :toggle KILL_ONEDRIVE
 if "%_cfg_choice%"=="2"  call :toggle KILL_DISCORD
@@ -278,6 +361,57 @@ if "%_cfg_choice%"=="10" call :toggle RESTART_ONEDRIVE
 if "%_cfg_choice%"=="11" call :toggle RESTART_CCLEANER
 if "%_cfg_choice%"=="12" call :toggle RESTART_ICLOUD
 goto CONFIG_MENU
+
+:SET_DEFAULT_SIM
+cls
+echo ============================================================
+echo        SET DEFAULT SIM (1..7)
+echo ============================================================
+echo 1 = MSFS 2024 (Steam)
+echo 2 = MSFS 2020 (Steam)
+echo 3 = DCS World (Steam)
+echo 5 = MSFS 2024 (Store/GamePass)
+echo 6 = MSFS 2020 (Store/GamePass)
+echo 7 = DCS World (Standalone)
+echo.
+echo [Enter] to clear (no default)
+set /p _def="Default sim number: "
+if "%_def%"=="" ( set "DEFAULT_SIM=" & goto CONFIG_MENU )
+for %%N in (1 2 3 5 6 7) do if "%%N"=="%_def%" ( set "DEFAULT_SIM=%%N" & goto CONFIG_MENU )
+echo Invalid selection. Press any key to continue...
+pause >nul
+goto SET_DEFAULT_SIM
+
+:SET_DEFAULT_SIM_AND_LAUNCH
+cls
+echo ============================================================
+echo        SET DEFAULT SIM (1..7) TO PROCEED
+echo ============================================================
+echo 1 = MSFS 2024 (Steam)
+echo 2 = MSFS 2020 (Steam)
+echo 3 = DCS World (Steam)
+echo 5 = MSFS 2024 (Store/GamePass)
+echo 6 = MSFS 2020 (Store/GamePass)
+echo 7 = DCS World (Standalone)
+echo.
+echo [Enter] to cancel and return to the main menu
+set /p _def="Default sim number: "
+if "%_def%"=="" goto MAIN_MENU
+for %%N in (1 2 3 5 6 7) do if "%%N"=="%_def%" (
+    set "DEFAULT_SIM=%%N"
+    call :save_config
+    call :RESOLVE_SIM "%%N"
+    if not defined choice (
+        echo [!] Unexpected mapping error; returning to main menu...
+        timeout /t 2 >nul
+        goto MAIN_MENU
+    )
+    call :ADMIN_START
+    goto PREP_FLOW
+)
+echo Invalid selection. Press any key to try again...
+pause >nul
+goto SET_DEFAULT_SIM_AND_LAUNCH
 
 :CUSTOM_MENU
 cls
@@ -333,8 +467,9 @@ goto :eof
 :kill_custom
 if not defined CUST_K_COUNT goto :eof
 for /l %%I in (1,1,!CUST_K_COUNT!) do (
-    for /f "usebackq delims=" %%P in ("!CUST_K_%%I!") do (
-        if not "%%~P"=="" taskkill /f /im "%%~P" /t >nul 2>&1 && echo [%TIME%] [PREP] Custom kill: %%~P >> "%LOGFILE%"
+    set "proc=!CUST_K_%%I!"
+    if not "!proc!"=="" (
+        taskkill /f /im "!proc!" /t >nul 2>&1 && echo [%TIME%] [PREP] Custom kill: !proc! >> "%LOGFILE%"
     )
 )
 goto :eof
@@ -423,10 +558,10 @@ set /p _idx="Enter index to remove (1..%CUST_K_COUNT%): "
 if "%_idx%"=="" goto :eof
 if %_idx% LSS 1 goto :eof
 if %_idx% GTR %CUST_K_COUNT% goto :eof
-for /l %%J in (%_idx%,1,%CUST_K_COUNT%) do (
-    set /a _n=%%J+1
-    for /f "usebackq delims=" %%X in ("!CUST_K_!_n!!") do set "CUST_K_%%J=%%~X"
+if %_idx% LSS %CUST_K_COUNT% (
+    set "CUST_K_%_idx%=!CUST_K_%CUST_K_COUNT%!"
 )
+set "CUST_K_%CUST_K_COUNT%="
 set /a CUST_K_COUNT-=1
 echo Removed. New custom kill count: !CUST_K_COUNT!
 goto :eof
@@ -453,21 +588,38 @@ set /p _idx="Enter index to remove (1..%CUST_R_COUNT%): "
 if "%_idx%"=="" goto :eof
 if %_idx% LSS 1 goto :eof
 if %_idx% GTR %CUST_R_COUNT% goto :eof
-for /l %%J in (%_idx%,1,%CUST_R_COUNT%) do (
-    set /a _n=%%J+1
-    for /f "usebackq delims=" %%X in ("!CUST_R_CMD_!_n!!") do set "CUST_R_CMD_%%J=%%~X"
-    for /f "usebackq delims=" %%X in ("!CUST_R_ARGS_!_n!!") do set "CUST_R_ARGS_%%J=%%~X"
+if %_idx% LSS %CUST_R_COUNT% (
+    set "CUST_R_CMD_%_idx%=!CUST_R_CMD_%CUST_R_COUNT%!"
+    set "CUST_R_ARGS_%_idx%=!CUST_R_ARGS_%CUST_R_COUNT%!"
 )
+set "CUST_R_CMD_%CUST_R_COUNT%="
+set "CUST_R_ARGS_%CUST_R_COUNT%="
 set /a CUST_R_COUNT-=1
 echo Removed. New custom restart count: !CUST_R_COUNT!
 goto :eof
 
 :: -----------------------------
-:: Config I/O (robust writer)
-:: ----------------------------
+:: ADMIN CHECK & LOG START
+:: -----------------------------
+:ADMIN_START
+if exist "%LOGFILE%" (
+    set "count=0"
+    for /f "usebackq" %%A in (`find /c /i "[SESSION START]" "%LOGFILE%"`) do set "count=%%A"
+    for %%I in ("%LOGFILE%") do set "fsize=%%~zI"
+    if !count! GEQ 10 ( move /y "%LOGFILE%" "%LOGFILE%.old" >nul & echo [%DATE% %TIME%] [LOG] Rotation triggered >> "%LOGFILE%" )
+    if !fsize! GTR 2097152 ( move /y "%LOGFILE%" "%LOGFILE%.old" >nul )
+)
+echo ============================================================ >> "%LOGFILE%"
+echo [%DATE% %TIME%] [SESSION START] Target: %VERSION_NAME% >> "%LOGFILE%"
 
+net session >nul 2>&1 || ( powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -ArgumentList 'LAUNCH %choice%' -Verb RunAs" & exit /b )
+if /i "%~1"=="LAUNCH" if not "%~2"=="" set "choice=%~2"
+cd /d "%SCRIPT_DIR%"
+goto :eof
 
-
+:: ============================================================
+::                    CONFIG I/O — robust & safe
+:: ============================================================
 :load_config
 if not exist "%CFG%" (
     call :set_defaults
@@ -475,18 +627,17 @@ if not exist "%CFG%" (
     goto :eof
 )
 
-rem Read only lines that look like KEY=... and persist them with delayed expansion safely OFF.
 setlocal DisableDelayedExpansion
-for /f "usebackq delims=" %%L in (`
-    findstr /R "^[A-Za-z0-9_][A-Za-z0-9_]*=" "%CFG%"
-`) do (
-    rem Persist to outer scope; keep the whole RHS including any '='
-    endlocal & set "%%~L"
-    setlocal DisableDelayedExpansion
+for /f "usebackq tokens=1,* delims==" %%A in ("%CFG%") do (
+    rem Skip comments and blank keys
+    if not "%%A"=="" if not "%%A:~0,1%"=="#" if not "%%A:~0,1%"==";" if not "%%A:~0,1%"=="[" (
+        endlocal & set "%%A=%%B"
+        setlocal DisableDelayedExpansion
+    )
 )
 endlocal
 
-rem ---- Safety net defaults (unchanged) ----
+rem ---- Safety net defaults ----
 if not defined KILL_ONEDRIVE set "KILL_ONEDRIVE=YES"
 if not defined KILL_DISCORD set "KILL_DISCORD=YES"
 if not defined KILL_CHROME set "KILL_CHROME=YES"
@@ -505,10 +656,7 @@ if not defined DEFAULT_SIM set "DEFAULT_SIM="
 if not defined AUTO_RUN_ON_START set "AUTO_RUN_ON_START=NO"
 goto :eof
 
-
-
 :set_defaults
-:: Built-in defaults
 set "KILL_ONEDRIVE=YES"
 set "KILL_DISCORD=YES"
 set "KILL_CHROME=YES"
@@ -525,81 +673,41 @@ set "RESTART_ICLOUD=YES"
 
 set "CUST_K_COUNT=0"
 set "CUST_R_COUNT=0"
+
+set "DEFAULT_SIM="
+set "AUTO_RUN_ON_START=NO"
 goto :eof
--
 
 :save_config
-REM Guarantee numeric defaults so we don't write blank counts
 if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
 if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
+if not defined AUTO_RUN_ON_START set "AUTO_RUN_ON_START=NO"
 
-REM Turn OFF delayed expansion to avoid losing '!' and breaking the block
-setlocal DisableDelayedExpansion
-
-REM 1) Write fixed keys in one pass (overwrite)
-> "%CFG%" (
-  echo # VR Optimizer Config - auto-generated
-  echo # Toggle YES/NO; custom entries are indexed.
-  echo KILL_ONEDRIVE=%KILL_ONEDRIVE%
-  echo KILL_DISCORD=%KILL_DISCORD%
-  echo KILL_CHROME=%KILL_CHROME%
-  echo KILL_EDGE=%KILL_EDGE%
-  echo KILL_CCLEANER=%KILL_CCLEANER%
-  echo KILL_ICLOUDSERVICES=%KILL_ICLOUDSERVICES%
-  echo KILL_ICLOUDDRIVE=%KILL_ICLOUDDRIVE%
-  echo RESTART_EDGE=%RESTART_EDGE%
-  echo RESTART_DISCORD=%RESTART_DISCORD%
-  echo RESTART_ONEDRIVE=%RESTART_ONEDRIVE%
-  echo RESTART_CCLEANER=%RESTART_CCLEANER%
-  echo RESTART_ICLOUD=%RESTART_ICLOUD%
-  echo CUST_K_COUNT=%CUST_K_COUNT%
-)
-
-REM 2) Append dynamic custom KILL entries safely (no delayed expansion while echoing)
+:: Write fixed keys line-by-line (no parentheses block)
+>  "%CFG%" echo # VR Optimizer Config - auto-generated
+>> "%CFG%" echo # Toggle YES/NO; custom entries are indexed.
+>> "%CFG%" echo KILL_ONEDRIVE=%KILL_ONEDRIVE%
+>> "%CFG%" echo KILL_DISCORD=%KILL_DISCORD%
+>> "%CFG%" echo KILL_CHROME=%KILL_CHROME%
+>> "%CFG%" echo KILL_EDGE=%KILL_EDGE%
+>> "%CFG%" echo KILL_CCLEANER=%KILL_CCLEANER%
+>> "%CFG%" echo KILL_ICLOUDSERVICES=%KILL_ICLOUDSERVICES%
+>> "%CFG%" echo KILL_ICLOUDDRIVE=%KILL_ICLOUDDRIVE%
+>> "%CFG%" echo RESTART_EDGE=%RESTART_EDGE%
+>> "%CFG%" echo RESTART_DISCORD=%RESTART_DISCORD%
+>> "%CFG%" echo RESTART_ONEDRIVE=%RESTART_ONEDRIVE%
+>> "%CFG%" echo RESTART_CCLEANER=%RESTART_CCLEANER%
+>> "%CFG%" echo RESTART_ICLOUD=%RESTART_ICLOUD%
+>> "%CFG%" echo DEFAULT_SIM=%DEFAULT_SIM%
+>> "%CFG%" echo AUTO_RUN_ON_START=%AUTO_RUN_ON_START%
+>> "%CFG%" echo CUST_K_COUNT=%CUST_K_COUNT%
 for /l %%I in (1,1,%CUST_K_COUNT%) do (
-  call :_persist_line "CUST_K_%%I" "!CUST_K_%%I!"
+  >> "%CFG%" echo CUST_K_%%I=!CUST_K_%%I!
 )
-
-REM 3) Append dynamic custom RESTART entries safely
 >> "%CFG%" echo CUST_R_COUNT=%CUST_R_COUNT%
 for /l %%I in (1,1,%CUST_R_COUNT%) do (
-  call :_persist_line "CUST_R_CMD_%%I" "!CUST_R_CMD_%%I!"
-  call :_persist_line "CUST_R_ARGS_%%I" "!CUST_R_ARGS_%%I!"
-)
-
-endlocal
-
-REM 4) Verify write success (optional but helpful)
-if not exist "%CFG%" (
-  echo [ERROR] Could not create "%CFG%". Check permissions folder read-only?.
-  goto :eof
+  >> "%CFG%" echo CUST_R_CMD_%%I=!CUST_R_CMD_%%I!
+  >> "%CFG%" echo CUST_R_ARGS_%%I=!CUST_R_ARGS_%%I!
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
-
-:_persist_line
-REM Usage: call :_persist_line "KEY" "VALUE"
-REM Disable delayed expansion specifically while echoing to preserve any '!'
-setlocal DisableDelayedExpansion
-set "K=%~1"
-set "V=%~2"
->> "%CFG%" echo %K%=%V%
-endlocal & goto :eof
-
-
-
-:_append_kv
-REM Uses PowerShell to append: KEY=VALUE (preserves quotes, carets, !, etc.)
-set "_k=%~1"
-set "_v=%~2"
-powershell -NoProfile -ExecutionPolicy Bypass ^
-  -Command "$k=%~1; $v=%~2; Add-Content -LiteralPath '%CFG%' -Value ($k+'='+$v)"
-goto :eof
-
-
-:_persist
-:: Safe dynamic var write using CALL expansion
-set "_line=%~1"
-for /f "tokens=1* delims==" %%a in ('set %_line% 2^>nul') do >>"%CFG%" echo %%a=%%b
-goto :eof
-
