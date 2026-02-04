@@ -3,7 +3,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.1b)
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.2b)
 :: - Persistent configuration for which apps are killed/restored
 :: - DEFAULT_SIM + AUTO_RUN_ON_START
 :: - Config stored in vr_opt.cfg next to this script
@@ -704,6 +704,7 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
 
 
 
