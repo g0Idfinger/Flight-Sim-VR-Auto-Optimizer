@@ -72,6 +72,7 @@ if defined DEFAULT_SIM (
 :: Resolve sim by selection (1..7)
 :: -----------------------------
 
+
 :RESOLVE_SIM
 set "choice=%~1"
 set "LAUNCH_METHOD=STEAM"
@@ -84,20 +85,8 @@ if "%choice%"=="1" (
     set "STEAM_APPID=223750" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Steam)"
 ) else if "%choice%"=="5" (
     set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Store)"
-    rem Build STORE_URI with delayed expansion OFF so !App is literal
-    setlocal DisableDelayedExpansion
-    set "STORE_URI_LOCAL="
-    for /f "usebackq delims=" %%A in (`
-        powershell -NoProfile -Command ^
-          "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless' -or $_.Name -match 'MicrosoftFlightSimulator' -or $_.Name -match 'FlightSimulator') -and $_.Name -notmatch '2020' }; if($p){ $p.PackageFamilyName }" 2^>nul
-    `) do set "STORE_URI_LOCAL=shell:AppsFolder\%%A!App -FastLaunch"
-    if not defined STORE_URI_LOCAL set "STORE_URI_LOCAL=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe!App -FastLaunch"
-    endlocal & set "STORE_URI=%STORE_URI_LOCAL%"
 ) else if "%choice%"=="6" (
     set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
-    setlocal DisableDelayedExpansion
-    set "STORE_URI_LOCAL=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe!App -FastLaunch"
-    endlocal & set "STORE_URI=%STORE_URI_LOCAL%"
 ) else if "%choice%"=="7" (
     set "LAUNCH_METHOD=DCS_STORE" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Standalone)"
 ) else (
@@ -172,8 +161,10 @@ echo [%TIME%] [LAUNCH] Method: %LAUNCH_METHOD% - Target: %GAME_EXE% >> "%LOGFILE
 if "%LAUNCH_METHOD%"=="STEAM" (
     start "" "steam://run/%STEAM_APPID%"
 
+
 ) else if "%LAUNCH_METHOD%"=="STORE" (
-    call :LAUNCH_STORE_URI
+    call :LAUNCH_STORE_MSFS
+
 
 ) else if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_BIN="
@@ -184,51 +175,50 @@ if "%LAUNCH_METHOD%"=="STEAM" (
     if defined DCS_BIN ( pushd "!DCS_BIN:\DCS.exe=!" & start "" "DCS.exe" & popd )
 )
 
+
 :: -----------------------------
-:: Robust launcher for Store/GamePass (UWP) targets
-:: Tries Explorer (best from elevated), then direct shell:, then PS fallback.
-:: Verifies activation by checking ApplicationFrameHost.exe briefly.
+:: Robust launcher for MSFS Store/GamePass (UWP)
+:: - 2024 (choice 5): discover PFN (Limitless / FlightSimulator) or fallback
+:: - 2020 (choice 6): known PFN
+:: - Launch via Explorer with AUMID + -FastLaunch
+:: - Probe for UWP host to confirm activation
 :: -----------------------------
-:LAUNCH_STORE_URI
+:LAUNCH_STORE_MSFS
 setlocal DisableDelayedExpansion
-echo [%TIME%] [LAUNCH] Store-URI: %STORE_URI%>>"%LOGFILE%"
-echo Launching Store URI: %STORE_URI%
+set "PFN="
 
-rem #1 Preferred: let Explorer (unelevated shell) activate the UWP
-start "" explorer.exe "%STORE_URI%"
+if "%choice%"=="5" (
+    for /f "usebackq delims=" %%A in (`
+        powershell -NoProfile -Command ^
+          "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless|MicrosoftFlightSimulator|FlightSimulator') -and $_.Name -notmatch '2020' } | Select-Object -First 1 -ExpandProperty PackageFamilyName"
+    ` 2^>nul) do set "PFN=%%A"
+    if not defined PFN set "PFN=Microsoft.Limitless_8wekyb3d8bbwe"
+) else if "%choice%"=="6" (
+    set "PFN=Microsoft.FlightSimulator_8wekyb3d8bbwe"
+) else (
+    echo [%TIME%] [LAUNCH][ERR] STORE branch reached without known choice>>"%LOGFILE%"
+    endlocal & goto :eof
+)
 
-rem Give it a moment to spin
-timeout /t 2 >nul
+echo [%TIME%] [LAUNCH] PFN: %PFN%>>"%LOGFILE%"
+echo Launching Store AUMID: %PFN%!App -FastLaunch
 
-rem Quick probe – UWP shells always use ApplicationFrameHost
+rem Use Explorer (unelevated shell) to activate the UWP app with AUMID and fast flag
+start "" explorer.exe "shell:AppsFolder\%PFN%!App -FastLaunch"
+
+rem Give it a moment to spin up
+timeout /t 3 >nul
+
+rem Confirm UWP host exists (indicator of activation)
 tasklist /NH /FI "IMAGENAME eq ApplicationFrameHost.exe" | find /i "ApplicationFrameHost.exe" >nul
 if not errorlevel 1 (
     echo [%TIME%] [LAUNCH] UWP host detected after Explorer launch>>"%LOGFILE%"
-    endlocal & goto :eof
+) else (
+    echo [%TIME%] [LAUNCH][WARN] UWP host not detected; continuing anyway>>"%LOGFILE%"
 )
 
-rem #2 Try direct shell: protocol (works in some environments)
-rem NOTE: do NOT quote %STORE_URI% for this try
-start "" %STORE_URI%
-timeout /t 2 >nul
-tasklist /NH /FI "IMAGENAME eq ApplicationFrameHost.exe" | find /i "ApplicationFrameHost.exe" >nul
-if not errorlevel 1 (
-    echo [%TIME%] [LAUNCH] UWP host detected after direct shell: launch>>"%LOGFILE%"
-    endlocal & goto :eof
-)
-
-rem #3 PowerShell fallback (re-invokes Explorer with the URI)
-powershell -NoProfile -WindowStyle Hidden -Command ^
-  "Start-Process 'explorer.exe' -ArgumentList @('%STORE_URI%')"
-timeout /t 2 >nul
-tasklist /NH /FI "IMAGENAME eq ApplicationFrameHost.exe" | find /i "ApplicationFrameHost.exe" >nul
-if not errorlevel 1 (
-    echo [%TIME%] [LAUNCH] UWP host detected after PowerShell fallback>>"%LOGFILE%"
-    endlocal & goto :eof
-)
-
-echo [%TIME%] [LAUNCH][WARN] UWP host not detected; continuing to game detection anyway>>"%LOGFILE%"
 endlocal & goto :eof
+
 
 :: DETECTION
 set /a retry_count=0
@@ -768,3 +758,4 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
