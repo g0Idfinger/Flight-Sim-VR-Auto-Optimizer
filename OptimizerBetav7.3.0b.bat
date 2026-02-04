@@ -3,11 +3,10 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.4.0b)
-:: - Adds persistent configuration for which apps are killed
-::   and which apps are restarted on restore.
-:: - Adds DEFAULT_SIM and AUTO_RUN_ON_START.
-:: - Stores settings in vr_opt.cfg next to this script.
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.5.0b)
+:: - Persistent configuration for which apps are killed/restored
+:: - DEFAULT_SIM + AUTO_RUN_ON_START
+:: - Config stored in vr_opt.cfg next to this script
 :: ============================================================
 
 :: Paths & Files
@@ -42,15 +41,32 @@ echo ============================================================
 echo        VR AUTO-OPTIMIZER - MAIN MENU
 echo ============================================================
 echo.
-echo [1] Launch Simulator
+echo [1] Launch Simulator  ^(uses DEFAULT_SIM if set; otherwise prompts^)
 echo [2] Configure App Controls - kill/restart + custom
 echo [X] Exit
 echo.
 set /p _main_choice="Selection: "
-if /i "%_main_choice%"=="1" goto MENU
+if /i "%_main_choice%"=="1" goto LAUNCH_DEFAULT_OR_SET
 if /i "%_main_choice%"=="2" goto CONFIG_MENU
 if /i "%_main_choice%"=="X" exit /b
 goto MAIN_MENU
+
+:: -----------------------------
+:: Launch default if set; else prompt to set, then launch
+:: -----------------------------
+:LAUNCH_DEFAULT_OR_SET
+if defined DEFAULT_SIM (
+    call :RESOLVE_SIM "!DEFAULT_SIM!"
+    if not defined choice (
+        echo [!] DEFAULT_SIM value "!DEFAULT_SIM!" is invalid. Press any key to set a valid one...
+        pause >nul
+        goto SET_DEFAULT_SIM_AND_LAUNCH
+    )
+    call :ADMIN_START
+    goto PREP_FLOW
+) else (
+    goto SET_DEFAULT_SIM_AND_LAUNCH
+)
 
 :: -----------------------------
 :: Resolve sim by selection (1..7)
@@ -80,7 +96,7 @@ if "%choice%"=="1" (
 goto :eof
 
 :: -----------------------------
-:: Original Simulator Menu
+:: Original Simulator Menu (manual picker)
 :: -----------------------------
 :MENU
 cls
@@ -109,7 +125,7 @@ call :ADMIN_START
 :: [1/4] PREP (driven by config)
 :: -----------------------------
 echo [1/4] Preparing system...
-powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
+powercfg /setactive e9a42b02-d5df-448d-aa00-03f14749eb61 >nul 2>&1
 echo [%TIME%] [PREP] Power Plan active: %VERSION_NAME% >> "%LOGFILE%"
 
 :: Built-in app kills (toggleable)
@@ -181,13 +197,24 @@ goto WAIT_GAME
 :GAME_DETECTED
 echo [!] %GAME_EXE% detected. Optimizing Performance...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$n='%GAME_EXE%'.Replace('.exe',''); $p=Get-Process $n -ErrorAction SilentlyContinue; if($p){ " ^
-    "try { $p.PriorityClass='High'; " ^
-    "$cpu=Get-CimInstance Win32_Processor; $cores=$cpu.NumberOfCores; $logical=$cpu.NumberOfLogicalProcessors; " ^
-    "$mask=[int64]0; if($logical -gt $cores){ for($i=0; $i -lt $cores; $i++){ $mask=[int64]($mask + [math]::Pow(2,$i*2)) } } " ^
-    "else { for($i=0; $i -lt $cores; $i++){ $mask=[int64]($mask + [math]::Pow(2,$i)) } }; " ^
-    "$p.ProcessorAffinity=[IntPtr]$mask; Write-Host 'Optimized Performance' -ForegroundColor Cyan " ^
-    "} catch { Write-Host 'Affinity partially applied' -ForegroundColor Yellow } }"
+  "$n='%GAME_EXE%'.Replace('.exe','');" ^
+  "$p=Get-Process $n -ErrorAction SilentlyContinue;" ^
+  "if($p){" ^
+  "  try {" ^
+  "    $p.PriorityClass='High';" ^
+  "    $cpu=Get-CimInstance Win32_Processor;" ^
+  "    $cores=$cpu.NumberOfCores;" ^
+  "    $logical=$cpu.NumberOfLogicalProcessors;" ^
+  "    $mask=[int64]0;" ^
+  "    if($logical -gt $cores){" ^
+  "      for($i=0; $i -lt $cores; $i++){ $mask += [int64][math]::Pow(2,$i*2) }" ^
+  "    } else {" ^
+  "      for($i=0; $i -lt $cores; $i++){ $mask += [int64][math]::Pow(2,$i) }" ^
+  "    };" ^
+  "    $p.ProcessorAffinity=[IntPtr]$mask;" ^
+  "    Write-Host 'Optimized Performance' -ForegroundColor Cyan" ^
+  "  } catch { Write-Host 'Affinity partially applied' -ForegroundColor Yellow }" ^
+  "}"
 
 echo ============================================================
 echo %VERSION_NAME% RUNNING - DO NOT CLOSE THIS WINDOW
@@ -198,7 +225,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Write-Host ' and ' -NoNewline; " ^
   "Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
   "Write-Host ' and ' -NoNewline; " ^
-  "Write-Host ' g0|dƒ!ทg3Я ' -ForegroundColor Red -BackgroundColor Yellow;"
+  "Write-Host ' g0|df!ng3r ' -ForegroundColor Red -BackgroundColor Yellow;"
 endlocal
 echo ============================================================
 
@@ -262,7 +289,7 @@ echo  [11] Restart CCleaner = !RESTART_CCLEANER!
 echo  [12] Restart iCloud   = !RESTART_ICLOUD!
 echo.
 echo DEFAULTS:
-echo  [D] Set default sim (current: !DEFAULT_SIM!)
+echo  [D] Set default sim (current: !DEFAULT_SIM!)  ^<-- used by Main Menu [1]
 echo  [A] Toggle auto-run on start (AUTO_RUN_ON_START = !AUTO_RUN_ON_START!)
 echo.
 echo CUSTOM APPS:
@@ -310,6 +337,37 @@ for %%N in (1 2 3 5 6 7) do if "%%N"=="%_def%" ( set "DEFAULT_SIM=%%N" & goto CO
 echo Invalid selection. Press any key to continue...
 pause >nul
 goto SET_DEFAULT_SIM
+
+:SET_DEFAULT_SIM_AND_LAUNCH
+cls
+echo ============================================================
+echo        SET DEFAULT SIM (1..7) TO PROCEED
+echo ============================================================
+echo 1 = MSFS 2024 (Steam)
+echo 2 = MSFS 2020 (Steam)
+echo 3 = DCS World (Steam)
+echo 5 = MSFS 2024 (Store/GamePass)
+echo 6 = MSFS 2020 (Store/GamePass)
+echo 7 = DCS World (Standalone)
+echo.
+echo [Enter] to cancel and return to the main menu
+set /p _def="Default sim number: "
+if "%_def%"=="" goto MAIN_MENU
+for %%N in (1 2 3 5 6 7) do if "%%N"=="%_def%" (
+    set "DEFAULT_SIM=%%N"
+    call :save_config
+    call :RESOLVE_SIM "%%N"
+    if not defined choice (
+        echo [!] Unexpected mapping error; returning to main menu...
+        timeout /t 2 >nul
+        goto MAIN_MENU
+    )
+    call :ADMIN_START
+    goto PREP_FLOW
+)
+echo Invalid selection. Press any key to try again...
+pause >nul
+goto SET_DEFAULT_SIM_AND_LAUNCH
 
 :CUSTOM_MENU
 cls
@@ -456,10 +514,10 @@ set /p _idx="Enter index to remove (1..%CUST_K_COUNT%): "
 if "%_idx%"=="" goto :eof
 if %_idx% LSS 1 goto :eof
 if %_idx% GTR %CUST_K_COUNT% goto :eof
-for /l %%J in (%_idx%,1,%CUST_K_COUNT%) do (
-    set /a _n=%%J+1
-    for /f "usebackq delims=" %%X in ("!CUST_K_!_n!!") do set "CUST_K_%%J=%%~X"
+if %_idx% LSS %CUST_K_COUNT% (
+    set "CUST_K_%_idx%=!CUST_K_%CUST_K_COUNT%!"
 )
+set "CUST_K_%CUST_K_COUNT%="
 set /a CUST_K_COUNT-=1
 echo Removed. New custom kill count: !CUST_K_COUNT!
 goto :eof
@@ -486,11 +544,12 @@ set /p _idx="Enter index to remove (1..%CUST_R_COUNT%): "
 if "%_idx%"=="" goto :eof
 if %_idx% LSS 1 goto :eof
 if %_idx% GTR %CUST_R_COUNT% goto :eof
-for /l %%J in (%_idx%,1,%CUST_R_COUNT%) do (
-    set /a _n=%%J+1
-    for /f "usebackq delims=" %%X in ("!CUST_R_CMD_!_n!!") do set "CUST_R_CMD_%%J=%%~X"
-    for /f "usebackq delims=" %%X in ("!CUST_R_ARGS_!_n!!") do set "CUST_R_ARGS_%%J=%%~X"
+if %_idx% LSS %CUST_R_COUNT% (
+    set "CUST_R_CMD_%_idx%=!CUST_R_CMD_%CUST_R_COUNT%!"
+    set "CUST_R_ARGS_%_idx%=!CUST_R_ARGS_%CUST_R_COUNT%!"
 )
+set "CUST_R_CMD_%CUST_R_COUNT%="
+set "CUST_R_ARGS_%CUST_R_COUNT%="
 set /a CUST_R_COUNT-=1
 echo Removed. New custom restart count: !CUST_R_COUNT!
 goto :eof
