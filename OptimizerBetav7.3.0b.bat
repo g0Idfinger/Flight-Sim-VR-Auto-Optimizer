@@ -184,15 +184,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     "$n='%GAME_EXE%'.Replace('.exe',''); $p=Get-Process $n -ErrorAction SilentlyContinue; if($p){ " ^
     "try { $p.PriorityClass='High'; " ^
     "$cpu=Get-CimInstance Win32_Processor; $cores=$cpu.NumberOfCores; $logical=$cpu.NumberOfLogicalProcessors; " ^
-    "$mask=[int64]0; if($logical -gt $cores){ for($i=0; $i -lt $cores; $i++){ $mask+=[int64][math]::Pow(2,$i*2) } } " ^
-    "else { for($i=0; $i -lt $cores; $i++){ $mask+=[int64][math]::Pow(2,$i) } }; " ^
+    "$mask=[int64]0; if($logical -gt $cores){ for($i=0; $i -lt $cores; $i++){ $mask=[int64]($mask + [math]::Pow(2,$i*2)) } } " ^
+    "else { for($i=0; $i -lt $cores; $i++){ $mask=[int64]($mask + [math]::Pow(2,$i)) } }; " ^
     "$p.ProcessorAffinity=[IntPtr]$mask; Write-Host 'Optimized Performance' -ForegroundColor Cyan " ^
     "} catch { Write-Host 'Affinity partially applied' -ForegroundColor Yellow } }"
 
 echo ============================================================
 echo %VERSION_NAME% RUNNING - DO NOT CLOSE THIS WINDOW
+setlocal DisableDelayedExpansion
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; Write-Host ' and ' -NoNewline; Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red;  Write-Host ' and ' -NoNewline; Write-Host ' g0|dƒ!ทg3Я ' -ForegroundColor Red -BackgroundColor Yellow;""
+  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; " ^
+  "Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
+  "Write-Host ' and ' -NoNewline; " ^
+  "Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
+  "Write-Host ' and ' -NoNewline; " ^
+  "Write-Host ' g0|dƒ!ทg3Я ' -ForegroundColor Red -BackgroundColor Yellow;"
+endlocal
 echo ============================================================
 
 :WAIT_EXIT
@@ -357,9 +364,10 @@ goto :eof
 :: -----------------------------
 :kill_custom
 if not defined CUST_K_COUNT goto :eof
-for /l %%I in (1,1)!CUST_K_COUNT! do (
-    for /f "usebackq delims=" %%P in ("!CUST_K_%%I!") do (
-        if not "%%~P"=="" taskkill /f /im "%%~P" /t >nul 2>&1 && echo [%TIME%] [PREP] Custom kill: %%~P >> "%LOGFILE%"
+for /l %%I in (1,1,!CUST_K_COUNT!) do (
+    set "proc=!CUST_K_%%I!"
+    if not "!proc!"=="" (
+        taskkill /f /im "!proc!" /t >nul 2>&1 && echo [%TIME%] [PREP] Custom kill: !proc! >> "%LOGFILE%"
     )
 )
 goto :eof
@@ -421,7 +429,7 @@ goto :eof
 :: -----------------------------
 :restart_custom
 if not defined CUST_R_COUNT goto :eof
-for /l %%I in (1,1)!CUST_R_COUNT! do (
+for /l %%I in (1,1,!CUST_R_COUNT!) do (
     set "_cmd=!CUST_R_CMD_%%I!"
     set "_arg=!CUST_R_ARGS_%%I!"
     if not "!_cmd!"=="" (
