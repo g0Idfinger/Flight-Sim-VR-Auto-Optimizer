@@ -19,11 +19,6 @@ set "CFG=%SCRIPT_DIR%vr_opt.cfg"
 :: -----------------------------
 call :load_config
 
-echo CFG loaded from: "%CFG%"
-echo DEFAULT_SIM="%DEFAULT_SIM%"
-echo AUTO_RUN_ON_START="%AUTO_RUN_ON_START%"
-pause
-
 :: -----------------------------
 :: Optional auto-run on start
 :: -----------------------------
@@ -581,7 +576,6 @@ goto :eof
 :: ============================================================
 ::                    CONFIG I/O — robust & safe
 :: ============================================================
-
 :load_config
 if not exist "%CFG%" (
     call :set_defaults
@@ -617,7 +611,6 @@ if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
 if not defined DEFAULT_SIM set "DEFAULT_SIM="
 if not defined AUTO_RUN_ON_START set "AUTO_RUN_ON_START=NO"
 goto :eof
-
 
 :set_defaults
 set "KILL_ONEDRIVE=YES"
