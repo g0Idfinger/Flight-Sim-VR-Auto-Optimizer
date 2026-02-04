@@ -90,7 +90,7 @@ Commands to run after restore.
 ## 🧭 How to Use
 
 ### 1. Download the Script
-Place the `.cmd` file anywhere.
+Place the `.bat` file anywhere.
 
 ### 2. Run as Administrator
 The script auto‑elevates if needed.
