@@ -125,6 +125,7 @@ call :ADMIN_START
 :: [1/4] PREP (driven by config)
 :: -----------------------------
 echo [1/4] Preparing system...
+for /f "tokens=3 delims=:()" %%G in ('powercfg /getactivescheme ^| findstr /I "GUID"') do set "PREV_PWR=%%G"
 call :ensure_ultimate
 echo [%TIME%] [PREP] Power Plan active: %VERSION_NAME% >> "%LOGFILE%"
 
@@ -281,7 +282,13 @@ taskkill /f /im VirtualDesktop.Streamer.exe >nul 2>&1
 net start SysMain /y >nul 2>&1
 net start Spooler /y >nul 2>&1
 nvidia-smi -pm 0 >nul 2>&1
-powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e
+
+if defined PREV_PWR (
+    powercfg /setactive %PREV_PWR% >nul 2>&1
+) else (
+    powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e >nul 2>&1
+)
+
 echo [%TIME%] [RESTORE] System reverted >> "%LOGFILE%"
 
 :: Built-in restarts
@@ -704,6 +711,7 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
 
 
 
