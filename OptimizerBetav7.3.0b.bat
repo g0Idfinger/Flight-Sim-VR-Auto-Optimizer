@@ -450,21 +450,48 @@ echo Removed. New custom restart count: !CUST_R_COUNT!
 goto :eof
 
 :: -----------------------------
-:: Config I/O
-:: -----------------------------
+:: Config I/O (robust writer)
+:: ----------------------------
+
+
 :load_config
 if exist "%CFG%" (
+    setlocal EnableExtensions EnableDelayedExpansion
     for /f "usebackq tokens=1,* delims==" %%A in ("%CFG%") do (
-        set "k=%%~A"
-        if not "!k!"=="" if "!k:~0,1!" NEQ "#" if "!k:~0,1!" NEQ ";" if "!k:~0,1!" NEQ "[" (
-            set "%%~A=%%~B"
+        set "line=%%A"
+        if not defined line (
+            REM blank line, skip
+        ) else (
+            set "firstChar=!line:~0,1!"
+            if "!firstChar!" NEQ "#" if "!firstChar!" NEQ ";" if "!firstChar!" NEQ "[" (
+                set "%%~A=%%~B"
+            )
         )
+    )
+    endlocal & (
+        REM Ensure critical defaults exist if not present in file
+        if not defined KILL_ONEDRIVE set "KILL_ONEDRIVE=YES"
+        if not defined KILL_DISCORD set "KILL_DISCORD=YES"
+        if not defined KILL_CHROME set "KILL_CHROME=YES"
+        if not defined KILL_EDGE set "KILL_EDGE=YES"
+        if not defined KILL_CCLEANER set "KILL_CCLEANER=YES"
+        if not defined KILL_ICLOUDSERVICES set "KILL_ICLOUDSERVICES=YES"
+        if not defined KILL_ICLOUDDRIVE set "KILL_ICLOUDDRIVE=YES"
+        if not defined RESTART_EDGE set "RESTART_EDGE=YES"
+        if not defined RESTART_DISCORD set "RESTART_DISCORD=YES"
+        if not defined RESTART_ONEDRIVE set "RESTART_ONEDRIVE=YES"
+        if not defined RESTART_CCLEANER set "RESTART_CCLEANER=YES"
+        if not defined RESTART_ICLOUD set "RESTART_ICLOUD=YES"
+        if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
+        if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
     )
 ) else (
     call :set_defaults
     call :save_config
 )
 goto :eof
+
+
 
 :set_defaults
 :: Built-in defaults
@@ -485,11 +512,19 @@ set "RESTART_ICLOUD=YES"
 set "CUST_K_COUNT=0"
 set "CUST_R_COUNT=0"
 goto :eof
+-
 
 :save_config
+REM Guarantee numeric defaults so we don't write blank counts
+if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
+if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
+
+REM Turn OFF delayed expansion to avoid losing '!' and breaking the block
 setlocal DisableDelayedExpansion
-(
-  echo # VR Optimizer Config (auto-generated)
+
+REM 1) Write fixed keys in one pass (overwrite)
+> "%CFG%" (
+  echo # VR Optimizer Config - auto-generated
   echo # Toggle YES/NO; custom entries are indexed.
   echo KILL_ONEDRIVE=%KILL_ONEDRIVE%
   echo KILL_DISCORD=%KILL_DISCORD%
@@ -504,20 +539,52 @@ setlocal DisableDelayedExpansion
   echo RESTART_CCLEANER=%RESTART_CCLEANER%
   echo RESTART_ICLOUD=%RESTART_ICLOUD%
   echo CUST_K_COUNT=%CUST_K_COUNT%
-) > "%CFG%"
-for /l %%I in (1,1,%CUST_K_COUNT%) do call :_persist "CUST_K_%%I"
-(
-  echo CUST_R_COUNT=%CUST_R_COUNT%
-) >> "%CFG%"
-for /l %%I in (1,1,%CUST_R_COUNT%) do (
-  call :_persist "CUST_R_CMD_%%I"
-  call :_persist "CUST_R_ARGS_%%I"
 )
+
+REM 2) Append dynamic custom KILL entries safely (no delayed expansion while echoing)
+for /l %%I in (1,1,%CUST_K_COUNT%) do (
+  call :_persist_line "CUST_K_%%I" "!CUST_K_%%I!"
+)
+
+REM 3) Append dynamic custom RESTART entries safely
+>> "%CFG%" echo CUST_R_COUNT=%CUST_R_COUNT%
+for /l %%I in (1,1,%CUST_R_COUNT%) do (
+  call :_persist_line "CUST_R_CMD_%%I" "!CUST_R_CMD_%%I!"
+  call :_persist_line "CUST_R_ARGS_%%I" "!CUST_R_ARGS_%%I!"
+)
+
+endlocal
+
+REM 4) Verify write success (optional but helpful)
+if not exist "%CFG%" (
+  echo [ERROR] Could not create "%CFG%". Check permissions folder read-only?.
+  goto :eof
+)
+echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
+goto :eof
+
+:_persist_line
+REM Usage: call :_persist_line "KEY" "VALUE"
+REM Disable delayed expansion specifically while echoing to preserve any '!'
+setlocal DisableDelayedExpansion
+set "K=%~1"
+set "V=%~2"
+>> "%CFG%" echo %K%=%V%
 endlocal & goto :eof
+
+
+
+:_append_kv
+REM Uses PowerShell to append: KEY=VALUE (preserves quotes, carets, !, etc.)
+set "_k=%~1"
+set "_v=%~2"
+powershell -NoProfile -ExecutionPolicy Bypass ^
+  -Command "$k=%~1; $v=%~2; Add-Content -LiteralPath '%CFG%' -Value ($k+'='+$v)"
+goto :eof
+
 
 :_persist
 :: Safe dynamic var write using CALL expansion
 set "_line=%~1"
 for /f "tokens=1* delims==" %%a in ('set %_line% 2^>nul') do >>"%CFG%" echo %%a=%%b
 goto :eof
-
