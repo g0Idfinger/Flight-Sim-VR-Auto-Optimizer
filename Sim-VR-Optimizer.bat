@@ -222,7 +222,7 @@ setlocal DisableDelayedExpansion
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; " ^
   "Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
-  "Write-Host ' and ' -NoNewline; " ^
+  "Write-Host ', ' -NoNewline; " ^
   "Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
   "Write-Host ' and ' -NoNewline; " ^
   "Write-Host ' g0|df!ng3R ' -ForegroundColor Red -BackgroundColor Yellow;"
@@ -710,4 +710,5 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
 
