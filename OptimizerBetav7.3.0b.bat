@@ -3,7 +3,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.5.0b)
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.6.0b)
 :: - Persistent configuration for which apps are killed/restored
 :: - DEFAULT_SIM + AUTO_RUN_ON_START
 :: - Config stored in vr_opt.cfg next to this script
@@ -18,6 +18,11 @@ set "CFG=%SCRIPT_DIR%vr_opt.cfg"
 :: Load (or create) configuration
 :: -----------------------------
 call :load_config
+
+echo CFG loaded from: "%CFG%"
+echo DEFAULT_SIM="%DEFAULT_SIM%"
+echo AUTO_RUN_ON_START="%AUTO_RUN_ON_START%"
+pause
 
 :: -----------------------------
 :: Optional auto-run on start
@@ -225,7 +230,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Write-Host ' and ' -NoNewline; " ^
   "Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
   "Write-Host ' and ' -NoNewline; " ^
-  "Write-Host ' g0|df!ng3r ' -ForegroundColor Red -BackgroundColor Yellow;"
+  "Write-Host ' g0|df!ng3R ' -ForegroundColor Red -BackgroundColor Yellow;"
 endlocal
 echo ============================================================
 
@@ -422,7 +427,7 @@ goto :eof
 :: -----------------------------
 :kill_custom
 if not defined CUST_K_COUNT goto :eof
-for /l %%I in (1,1,!CUST_K_COUNT!) do (
+for /l %%I in (1,1)!CUST_K_COUNT! do (
     set "proc=!CUST_K_%%I!"
     if not "!proc!"=="" (
         taskkill /f /im "!proc!" /t >nul 2>&1 && echo [%TIME%] [PREP] Custom kill: !proc! >> "%LOGFILE%"
@@ -487,7 +492,7 @@ goto :eof
 :: -----------------------------
 :restart_custom
 if not defined CUST_R_COUNT goto :eof
-for /l %%I in (1,1,!CUST_R_COUNT!) do (
+for /l %%I in (1,1)!CUST_R_COUNT! do (
     set "_cmd=!CUST_R_CMD_%%I!"
     set "_arg=!CUST_R_ARGS_%%I!"
     if not "!_cmd!"=="" (
@@ -574,49 +579,47 @@ cd /d "%SCRIPT_DIR%"
 goto :eof
 
 :: ============================================================
-::                    CONFIG I/O (robust)
+::                    CONFIG I/O — robust & safe
 :: ============================================================
+
 :load_config
-if exist "%CFG%" (
-    setlocal EnableExtensions EnableDelayedExpansion
-    for /f "usebackq tokens=1,* delims==" %%A in ("%CFG%") do (
-        set "line=%%A"
-        if not defined line (
-            REM blank line, skip
-        ) else (
-            set "firstChar=!line:~0,1!"
-            if "!firstChar!" NEQ "#" if "!firstChar!" NEQ ";" if "!firstChar!" NEQ "[" (
-                set "%%~A=%%~B"
-            )
-        )
-    )
-    endlocal & (
-        REM Ensure critical defaults exist if not present in file
-        if not defined KILL_ONEDRIVE set "KILL_ONEDRIVE=YES"
-        if not defined KILL_DISCORD set "KILL_DISCORD=YES"
-        if not defined KILL_CHROME set "KILL_CHROME=YES"
-        if not defined KILL_EDGE set "KILL_EDGE=YES"
-        if not defined KILL_CCLEANER set "KILL_CCLEANER=YES"
-        if not defined KILL_ICLOUDSERVICES set "KILL_ICLOUDSERVICES=YES"
-        if not defined KILL_ICLOUDDRIVE set "KILL_ICLOUDDRIVE=YES"
-        if not defined RESTART_EDGE set "RESTART_EDGE=YES"
-        if not defined RESTART_DISCORD set "RESTART_DISCORD=YES"
-        if not defined RESTART_ONEDRIVE set "RESTART_ONEDRIVE=YES"
-        if not defined RESTART_CCLEANER set "RESTART_CCLEANER=YES"
-        if not defined RESTART_ICLOUD set "RESTART_ICLOUD=YES"
-        if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
-        if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
-        if not defined DEFAULT_SIM set "DEFAULT_SIM="
-        if not defined AUTO_RUN_ON_START set "AUTO_RUN_ON_START=NO"
-    )
-) else (
+if not exist "%CFG%" (
     call :set_defaults
     call :save_config
+    goto :eof
 )
+
+setlocal DisableDelayedExpansion
+for /f "usebackq tokens=1,* delims==" %%A in ("%CFG%") do (
+    rem Skip comments and blank keys
+    if not "%%A"=="" if not "%%A:~0,1%"=="#" if not "%%A:~0,1%"==";" if not "%%A:~0,1%"=="[" (
+        endlocal & set "%%A=%%B"
+        setlocal DisableDelayedExpansion
+    )
+)
+endlocal
+
+rem ---- Safety net defaults ----
+if not defined KILL_ONEDRIVE set "KILL_ONEDRIVE=YES"
+if not defined KILL_DISCORD set "KILL_DISCORD=YES"
+if not defined KILL_CHROME set "KILL_CHROME=YES"
+if not defined KILL_EDGE set "KILL_EDGE=YES"
+if not defined KILL_CCLEANER set "KILL_CCLEANER=YES"
+if not defined KILL_ICLOUDSERVICES set "KILL_ICLOUDSERVICES=YES"
+if not defined KILL_ICLOUDDRIVE set "KILL_ICLOUDDRIVE=YES"
+if not defined RESTART_EDGE set "RESTART_EDGE=YES"
+if not defined RESTART_DISCORD set "RESTART_DISCORD=YES"
+if not defined RESTART_ONEDRIVE set "RESTART_ONEDRIVE=YES"
+if not defined RESTART_CCLEANER set "RESTART_CCLEANER=YES"
+if not defined RESTART_ICLOUD set "RESTART_ICLOUD=YES"
+if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
+if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
+if not defined DEFAULT_SIM set "DEFAULT_SIM="
+if not defined AUTO_RUN_ON_START set "AUTO_RUN_ON_START=NO"
 goto :eof
 
+
 :set_defaults
-:: Built-in defaults
 set "KILL_ONEDRIVE=YES"
 set "KILL_DISCORD=YES"
 set "KILL_CHROME=YES"
@@ -634,22 +637,17 @@ set "RESTART_ICLOUD=YES"
 set "CUST_K_COUNT=0"
 set "CUST_R_COUNT=0"
 
-:: Default-sim new keys
 set "DEFAULT_SIM="
 set "AUTO_RUN_ON_START=NO"
 goto :eof
 
 :save_config
-REM Ensure numeric defaults
 if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
 if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
 if not defined AUTO_RUN_ON_START set "AUTO_RUN_ON_START=NO"
 
-REM Turn OFF delayed expansion while writing to avoid '!' mangling
-setlocal DisableDelayedExpansion
-
-REM 1) Fixed keys (write line-by-line; first line uses '>', rest '>>')
-> "%CFG%"  echo # VR Optimizer Config - auto-generated
+:: Write fixed keys line-by-line (no parentheses block)
+>  "%CFG%" echo # VR Optimizer Config - auto-generated
 >> "%CFG%" echo # Toggle YES/NO; custom entries are indexed.
 >> "%CFG%" echo KILL_ONEDRIVE=%KILL_ONEDRIVE%
 >> "%CFG%" echo KILL_DISCORD=%KILL_DISCORD%
@@ -666,33 +664,13 @@ REM 1) Fixed keys (write line-by-line; first line uses '>', rest '>>')
 >> "%CFG%" echo DEFAULT_SIM=%DEFAULT_SIM%
 >> "%CFG%" echo AUTO_RUN_ON_START=%AUTO_RUN_ON_START%
 >> "%CFG%" echo CUST_K_COUNT=%CUST_K_COUNT%
-
-REM 2) Custom KILL entries
 for /l %%I in (1,1,%CUST_K_COUNT%) do (
-  call :_persist_line "CUST_K_%%I" "!CUST_K_%%I!"
+  >> "%CFG%" echo CUST_K_%%I=!CUST_K_%%I!
 )
-
-REM 3) Custom RESTART entries
 >> "%CFG%" echo CUST_R_COUNT=%CUST_R_COUNT%
 for /l %%I in (1,1,%CUST_R_COUNT%) do (
-  call :_persist_line "CUST_R_CMD_%%I" "!CUST_R_CMD_%%I!"
-  call :_persist_line "CUST_R_ARGS_%%I" "!CUST_R_ARGS_%%I!"
-)
-
-endlocal
-
-REM 4) Verify write success
-if not exist "%CFG%" (
-  echo [ERROR] Could not create "%CFG%". Check permissions - folder read-only?.
-  goto :eof
+  >> "%CFG%" echo CUST_R_CMD_%%I=!CUST_R_CMD_%%I!
+  >> "%CFG%" echo CUST_R_ARGS_%%I=!CUST_R_ARGS_%%I!
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
-
-:_persist_line
-REM Usage: call :_persist_line "KEY" "VALUE"
-setlocal DisableDelayedExpansion
-set "K=%~1"
-set "V=%~2"
->> "%CFG%" echo %K%=%V%
-endlocal & goto :eof
