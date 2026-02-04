@@ -173,11 +173,7 @@ if "%LAUNCH_METHOD%"=="STEAM" (
     start "" "steam://run/%STEAM_APPID%"
 
 ) else if "%LAUNCH_METHOD%"=="STORE" (
-    setlocal DisableDelayedExpansion
-    echo [%TIME%] [LAUNCH] Store-URI: %STORE_URI%>>"%LOGFILE%"
-    echo Launching Store URI: %STORE_URI%
-    start "" explorer.exe "%STORE_URI%"
-    endloca
+    call :LAUNCH_STORE_URI
 
 ) else if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_BIN="
@@ -187,6 +183,52 @@ if "%LAUNCH_METHOD%"=="STEAM" (
     )
     if defined DCS_BIN ( pushd "!DCS_BIN:\DCS.exe=!" & start "" "DCS.exe" & popd )
 )
+
+:: -----------------------------
+:: Robust launcher for Store/GamePass (UWP) targets
+:: Tries Explorer (best from elevated), then direct shell:, then PS fallback.
+:: Verifies activation by checking ApplicationFrameHost.exe briefly.
+:: -----------------------------
+:LAUNCH_STORE_URI
+setlocal DisableDelayedExpansion
+echo [%TIME%] [LAUNCH] Store-URI: %STORE_URI%>>"%LOGFILE%"
+echo Launching Store URI: %STORE_URI%
+
+rem #1 Preferred: let Explorer (unelevated shell) activate the UWP
+start "" explorer.exe "%STORE_URI%"
+
+rem Give it a moment to spin
+timeout /t 2 >nul
+
+rem Quick probe – UWP shells always use ApplicationFrameHost
+tasklist /NH /FI "IMAGENAME eq ApplicationFrameHost.exe" | find /i "ApplicationFrameHost.exe" >nul
+if not errorlevel 1 (
+    echo [%TIME%] [LAUNCH] UWP host detected after Explorer launch>>"%LOGFILE%"
+    endlocal & goto :eof
+)
+
+rem #2 Try direct shell: protocol (works in some environments)
+rem NOTE: do NOT quote %STORE_URI% for this try
+start "" %STORE_URI%
+timeout /t 2 >nul
+tasklist /NH /FI "IMAGENAME eq ApplicationFrameHost.exe" | find /i "ApplicationFrameHost.exe" >nul
+if not errorlevel 1 (
+    echo [%TIME%] [LAUNCH] UWP host detected after direct shell: launch>>"%LOGFILE%"
+    endlocal & goto :eof
+)
+
+rem #3 PowerShell fallback (re-invokes Explorer with the URI)
+powershell -NoProfile -WindowStyle Hidden -Command ^
+  "Start-Process 'explorer.exe' -ArgumentList @('%STORE_URI%')"
+timeout /t 2 >nul
+tasklist /NH /FI "IMAGENAME eq ApplicationFrameHost.exe" | find /i "ApplicationFrameHost.exe" >nul
+if not errorlevel 1 (
+    echo [%TIME%] [LAUNCH] UWP host detected after PowerShell fallback>>"%LOGFILE%"
+    endlocal & goto :eof
+)
+
+echo [%TIME%] [LAUNCH][WARN] UWP host not detected; continuing to game detection anyway>>"%LOGFILE%"
+endlocal & goto :eof
 
 :: DETECTION
 set /a retry_count=0
@@ -726,12 +768,3 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
-
-
-
-
-
-
-
-
-
