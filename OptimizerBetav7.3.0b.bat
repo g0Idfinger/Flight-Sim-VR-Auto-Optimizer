@@ -43,7 +43,7 @@ echo        VR AUTO-OPTIMIZER - MAIN MENU
 echo ============================================================
 echo.
 echo [1] Launch Simulator
-echo [2] Configure App Controls (kill/restart + custom)
+echo [2] Configure App Controls - kill/restart + custom
 echo [X] Exit
 echo.
 set /p _main_choice="Selection: "
