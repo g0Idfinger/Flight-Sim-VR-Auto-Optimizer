@@ -71,6 +71,7 @@ if defined DEFAULT_SIM (
 :: -----------------------------
 :: Resolve sim by selection (1..7)
 :: -----------------------------
+
 :RESOLVE_SIM
 set "choice=%~1"
 set "LAUNCH_METHOD=STEAM"
@@ -81,31 +82,29 @@ if "%choice%"=="1" (
     set "STEAM_APPID=1250410" & set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Steam)"
 ) else if "%choice%"=="3" (
     set "STEAM_APPID=223750" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Steam)"
-) 
-else if "%choice%"=="5" (
-    set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 Store"
+) else if "%choice%"=="5" (
+    set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Store)"
     rem Build STORE_URI with delayed expansion OFF so !App is literal
     setlocal DisableDelayedExpansion
+    set "STORE_URI_LOCAL="
     for /f "usebackq delims=" %%A in (`
         powershell -NoProfile -Command ^
-            "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless' -or $_.Name -match 'MicrosoftFlightSimulator' -or $_.Name -match 'FlightSimulator') -and $_.Name -notmatch '2020' }; if($p){ $p.PackageFamilyName }"
-    ` 2^>nul) do (
-        endlocal & set "STORE_URI=shell:AppsFolder\%%A!App -FastLaunch" & setlocal DisableDelayedExpansion
-    )
-    endlocal & if not defined STORE_URI set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe!App -FastLaunch"
-
+          "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless' -or $_.Name -match 'MicrosoftFlightSimulator' -or $_.Name -match 'FlightSimulator') -and $_.Name -notmatch '2020' }; if($p){ $p.PackageFamilyName }" 2^>nul
+    `) do set "STORE_URI_LOCAL=shell:AppsFolder\%%A!App -FastLaunch"
+    if not defined STORE_URI_LOCAL set "STORE_URI_LOCAL=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe!App -FastLaunch"
+    endlocal & set "STORE_URI=%STORE_URI_LOCAL%"
 ) else if "%choice%"=="6" (
-    set "LAUNCH_METHOD=STORE"
+    set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
     setlocal DisableDelayedExpansion
-    endlocal & set "STORE_URI=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe!App -FastLaunch"
-    set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)
-"
+    set "STORE_URI_LOCAL=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe!App -FastLaunch"
+    endlocal & set "STORE_URI=%STORE_URI_LOCAL%"
 ) else if "%choice%"=="7" (
     set "LAUNCH_METHOD=DCS_STORE" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Standalone)"
 ) else (
     set "choice="
 )
 goto :eof
+
 
 :: -----------------------------
 :: Original Simulator Menu (manual picker)
@@ -172,9 +171,14 @@ echo [%TIME%] [LAUNCH] Method: %LAUNCH_METHOD% - Target: %GAME_EXE% >> "%LOGFILE
 
 if "%LAUNCH_METHOD%"=="STEAM" (
     start "" "steam://run/%STEAM_APPID%"
+
 ) else if "%LAUNCH_METHOD%"=="STORE" (
-    echo [%TIME%] [LAUNCH] Store-URI: !STORE_URI! >> "%LOGFILE%"
-    powershell -NoProfile -Command "explorer.exe $env:STORE_URI"
+    setlocal DisableDelayedExpansion
+    echo [%TIME%] [LAUNCH] Store-URI: %STORE_URI%>>"%LOGFILE%"
+    echo Launching Store URI: %STORE_URI%
+    start "" explorer.exe "%STORE_URI%"
+    endloca
+
 ) else if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_BIN="
     for %%D in (C D E F G H I J) do (
@@ -722,6 +726,7 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
+
 
 
 
