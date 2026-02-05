@@ -2,7 +2,7 @@
 
 
 ## How to use:
-- Download the above OptimizerBetaV7.2.2.bat
+- Download the above OptimizerBetaV7.2.2.bat or download one of the Releases, preferably Latest and unzip it.
 - Right-click -> Run as Administrator (Required for CPU priority and service management).
 - Select your Simulator from the menu and enjoy your flight! ✈️
 ---
