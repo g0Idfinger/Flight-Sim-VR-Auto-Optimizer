@@ -1,31 +1,27 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Apply safe, vendor-agnostic CPU affinity and High priority for a running process.
-  Works on AMD and Intel (incl. hybrid P/E cores using CPU Sets on Win10/11). Single-group (<=64 LP) only.
+  Force a running process to P-cores only (Intel hybrid) and set High priority.
+  On AMD / non-hybrid Intel, uses all LPs (no E-cores to exclude). Single group (<=64 LP) only.
 
 .PARAMETER ProcessName
-  Process name with or without ".exe" (e.g., "FlightSimulator2024.exe" or "FlightSimulator2024").
-
-.PARAMETER Mode
-  Auto         : Intel hybrid -> P-cores only; otherwise -> All LPs
-  All          : All logical processors
-  PCoresOnly   : Intel hybrid P-cores (EfficiencyClass==0)
-  ECoresOnly   : Intel hybrid E-cores (EfficiencyClass>0)
-  PhysicalOnly : One LP per physical core (SMT-aware)
+  Process name with or without ".exe" (e.g., "FlightSimulator2024" or "FlightSimulator2024.exe").
 
 .PARAMETER LogPath
-  Full path to a log file. If present, the script logs to it and to console.
+  Optional path to a log file; the script writes to console and to this file.
+
+.PARAMETER IntelPcoreCount
+  Optional manual override when CPU Sets API is unavailable on Intel hybrid.
+  Example: -IntelPcoreCount 8  (for 8 P-cores / 16 P-threads).
 #>
 
 param(
   [Parameter(Mandatory = $true)]
   [string]$ProcessName,
 
-  [ValidateSet('Auto','All','PCoresOnly','ECoresOnly','PhysicalOnly')]
-  [string]$Mode = 'Auto',
+  [string]$LogPath,
 
-  [string]$LogPath
+  [int]$IntelPcoreCount
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,12 +29,7 @@ $ErrorActionPreference = 'Stop'
 function Write-Both([string]$msg, [ConsoleColor]$color = [ConsoleColor]::Cyan) {
   # Console
   $orig = $Host.UI.RawUI.ForegroundColor
-  try {
-    $Host.UI.RawUI.ForegroundColor = $color
-    Write-Host $msg
-  } finally {
-    $Host.UI.RawUI.ForegroundColor = $orig
-  }
+  try { $Host.UI.RawUI.ForegroundColor = $color; Write-Host $msg } finally { $Host.UI.RawUI.ForegroundColor = $orig }
   # File
   if ($LogPath) {
     try { Add-Content -LiteralPath $LogPath -Value ("{0} {1}" -f (Get-Date -Format "HH:mm:ss.fff"), $msg) } catch {}
@@ -73,44 +64,33 @@ function ListToRanges([int[]]$arr) {
   $ranges = @()
   $start = $arr[0]; $prev = $arr[0]
   for ($i=1; $i -lt $arr.Count; $i++) {
-    if ($arr[$i] -eq $prev + 1) {
-      $prev = $arr[$i]
-      continue
-    }
-    if ($start -eq $prev) {
-      $ranges += "$start"
-    } else {
-      $ranges += "$start-$prev"
-    }
+    if ($arr[$i] -eq $prev + 1) { $prev = $arr[$i]; continue }
+    if ($start -eq $prev) { $ranges += "$start" } else { $ranges += "$start-$prev" }
     $start = $arr[$i]; $prev = $arr[$i]
   }
-  if ($start -eq $prev) {
-    $ranges += "$start"
-  } else {
-    $ranges += "$start-$prev"
-  }
+  if ($start -eq $prev) { $ranges += "$start" } else { $ranges += "$start-$prev" }
   return ($ranges -join ",")
 }
 
+# --- Resolve process ---
 $p = Get-TargetProcess $ProcessName
-if (-not $p) {
-  Write-Both "[AFFINITY] Process not found: $ProcessName" ([ConsoleColor]::Yellow)
-  exit 1
-}
+if (-not $p) { Write-Both "[AFFINITY] Process not found: $ProcessName" ([ConsoleColor]::Yellow); exit 1 }
 
+# --- CPU facts ---
 $cpu     = Get-CimInstance Win32_Processor
 $logical = [int]$cpu.NumberOfLogicalProcessors
 $cores   = [int]$cpu.NumberOfCores
 $isIntel = ($cpu.Manufacturer -like '*Intel*')
 
-# ---- CPU Sets API (Win10/11) ----
+$maxLp = [Math]::Min($logical, 64)  # single group only
+
+# === CPU Sets API (Win10/11) to map LPs & efficiency ===
 $cpuSetApiAvailable = $false
 $cpuSets = @()
 
 $cs = @"
 using System;
 using System.Runtime.InteropServices;
-
 public static class CpuSetsApi
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -120,17 +100,16 @@ public static class CpuSetsApi
         public int Type; // 0 = CpuSetInformation
         public CPU_SET CpuSet;
     }
-
     [StructLayout(LayoutKind.Sequential)]
     public struct CPU_SET
     {
         public int Id;
-        public short Group; // processor group
+        public short Group;
         public byte LogicalProcessorIndex;
         public byte CoreIndex;
         public byte LastLevelCacheIndex;
         public byte NUMANodeIndex;
-        public byte EfficiencyClass; // 0 => P-core on Intel hybrid typically
+        public byte EfficiencyClass; // Intel: 0=P-core, >0=E-core typically
         public byte Parked;
         public byte Allocated;
         public byte AllocatedToTargetProcess;
@@ -138,14 +117,9 @@ public static class CpuSetsApi
         public ulong Reserved0;
         public ulong Reserved1;
     }
-
     [DllImport("kernel32.dll", SetLastError=true)]
     public static extern bool GetSystemCpuSetInformation(
-        IntPtr information,
-        int bufferLength,
-        out int returnedLength,
-        IntPtr process,
-        int flags
+        IntPtr information, int bufferLength, out int returnedLength, IntPtr process, int flags
     );
 }
 "@
@@ -168,91 +142,64 @@ try {
           $offset += $rec.Size
         }
       }
-    } finally {
-      [Runtime.InteropServices.Marshal]::FreeHGlobal($buf)
-    }
+    } finally { [Runtime.InteropServices.Marshal]::FreeHGlobal($buf) }
   }
 } catch {
   $cpuSetApiAvailable = $false
 }
 
-# ---- Select LPs ----
+# --- Select P-cores ---
 $sel = @()
-switch ($Mode) {
-  'All' {
-    $sel = 0..([Math]::Min($logical,64)-1)
-  }
-  'PCoresOnly' {
-    if ($cpuSetApiAvailable -and $isIntel) {
-      $sel = $cpuSets | Where-Object { $_.Group -eq 0 -and $_.EfficiencyClass -eq 0 } |
-        Select-Object -ExpandProperty LogicalProcessorIndex | Sort-Object -Unique
-      if (-not $sel) { $sel = 0..([Math]::Min($logical,64)-1) }
-    } else { $Mode = 'PhysicalOnly' }
-    if ($Mode -ne 'PhysicalOnly') { break }
-  }
-  'ECoresOnly' {
-    if ($cpuSetApiAvailable -and $isIntel) {
-      $sel = $cpuSets | Where-Object { $_.Group -eq 0 -and $_.EfficiencyClass -gt 0 } |
-        Select-Object -ExpandProperty LogicalProcessorIndex | Sort-Object -Unique
-      if (-not $sel) { $sel = 0..([Math]::Min($logical,64)-1) }
-    } else { $Mode = 'PhysicalOnly' }
-    if ($Mode -ne 'PhysicalOnly') { break }
-  }
-  'PhysicalOnly' {
-    if ($cpuSetApiAvailable) {
-      $sel = $cpuSets | Where-Object { $_.Group -eq 0 } |
-        Group-Object CoreIndex | ForEach-Object { $_.Group | Select-Object -First 1 } |
-        Select-Object -ExpandProperty LogicalProcessorIndex | Sort-Object -Unique
-    } else {
-      if ($logical -gt $cores) {
-        $max = [Math]::Min($cores, 32)
-        $list = New-Object System.Collections.Generic.List[int]
-        for ($i=0; $i -lt $max; $i++) { [void]$list.Add($i*2) }
-        $sel = $list.ToArray()
-      } else {
-        $sel = 0..([Math]::Min($logical,64)-1)
-      }
+
+if ($isIntel) {
+  if ($cpuSetApiAvailable) {
+    # Intel hybrid: P-cores = EfficiencyClass==0, group 0, within 0..63
+    $sel = $cpuSets |
+      Where-Object { $_.Group -eq 0 -and $_.EfficiencyClass -eq 0 } |
+      Select-Object -ExpandProperty LogicalProcessorIndex |
+      Where-Object { $_ -ge 0 -and $_ -lt $maxLp } |
+      Sort-Object -Unique
+
+    if (-not $sel -or $sel.Count -eq 0) {
+      Write-Both "[AFFINITY] CPU Sets present but no P-cores returned; falling back." ([ConsoleColor]::Yellow)
     }
   }
-  'Auto' {
-    if ($cpuSetApiAvailable -and $isIntel) {
-      $hasE = (($cpuSets | Where-Object { $_.EfficiencyClass -gt 0 }).Count -gt 0)
-      if ($hasE) {
-        $sel = $cpuSets | Where-Object { $_.Group -eq 0 -and $_.EfficiencyClass -eq 0 } |
-          Select-Object -ExpandProperty LogicalProcessorIndex | Sort-Object -Unique
-      } else {
-        $sel = 0..([Math]::Min($logical,64)-1)
-      }
+
+  if (-not $cpuSetApiAvailable -or -not $sel -or $sel.Count -eq 0) {
+    # Fallback when CPU Sets are not available:
+    if ($IntelPcoreCount -gt 0) {
+      $pThreads = $IntelPcoreCount * 2   # each P-core has 2 threads
+      $upper = [Math]::Min($pThreads, $maxLp) - 1
+      if ($upper -ge 0) { $sel = 0..$upper } else { $sel = 0..($maxLp-1) }
+      Write-Both "[AFFINITY] Fallback: Using first $($upper+1) LPs as P-cores (user override: $IntelPcoreCount P-cores)." ([ConsoleColor]::Yellow)
     } else {
-      if ($logical -gt $cores) {
-        if ($cpuSetApiAvailable) {
-          $sel = $cpuSets | Where-Object { $_.Group -eq 0 } |
-            Group-Object CoreIndex | ForEach-Object { $_.Group | Select-Object -First 1 } |
-            Select-Object -ExpandProperty LogicalProcessorIndex | Sort-Object -Unique
-        } else {
-          $max = [Math]::Min($cores, 32)
-          $list = New-Object System.Collections.Generic.List[int]
-          for ($i=0; $i -lt $max; $i++) { [void]$list.Add($i*2) }
-          $sel = $list.ToArray()
-        }
-      } else {
-        $sel = 0..([Math]::Min($logical,64)-1)
-      }
+      # Without CPU Sets and no override, safest is to avoid guessing → all LPs
+      $sel = 0..($maxLp-1)
+      Write-Both "[AFFINITY] Warning: CPU Sets unavailable; cannot safely isolate P-cores. Using ALL LPs." ([ConsoleColor]::Yellow)
+      Write-Both "[AFFINITY] Tip: Pass -IntelPcoreCount (e.g., 8) to select first 16 LPs on Intel hybrid." ([ConsoleColor]::Yellow)
     }
   }
 }
+else {
+  # AMD / non-Intel → no E-cores; P-only == all
+  $sel = 0..($maxLp-1)
+}
+
+# Safety clamp & uniq
+$sel = $sel | Where-Object { $_ -ge 0 -and $_ -lt $maxLp } | Sort-Object -Unique
 
 if (-not $sel -or $sel.Count -eq 0) {
-  Write-Both "[AFFINITY] No LPs selected (Mode=$Mode)" ([ConsoleColor]::Yellow)
+  Write-Both "[AFFINITY] No LPs selected for P-cores." ([ConsoleColor]::Red)
   exit 2
 }
 
+# --- Build intended mask ---
 $intendedMask  = New-AffinityMask64 $sel
 $intendedLPs   = $sel
 $intendedRange = ListToRanges $intendedLPs
 $intendedHex   = ("0x{0:X}" -f ([UInt64][Int64]$intendedMask))
 
-# Apply and verify
+# --- Apply & verify ---
 $appliedStatus = "FAILED"
 $appliedMask   = [IntPtr]::Zero
 $appliedLPs    = @()
@@ -261,7 +208,7 @@ $appliedHex    = "0x0"
 try {
   $p.PriorityClass = 'High'
   $p.ProcessorAffinity = $intendedMask
-  Start-Sleep -Milliseconds 50  # small settle
+  Start-Sleep -Milliseconds 50
   $appliedMask = $p.ProcessorAffinity
   $appliedLPs  = MaskToLpList $appliedMask
   $appliedHex  = ("0x{0:X}" -f ([UInt64][Int64]$appliedMask))
@@ -275,21 +222,25 @@ try {
   }
 }
 catch {
-  $appliedStatus = "FAILED"
   Write-Both "[AFFINITY] Exception: $($_.Exception.Message)" ([ConsoleColor]::Yellow)
+  $appliedStatus = "FAILED"
 }
 
 $appliedRange = ListToRanges $appliedLPs
 
-# Output summary
-Write-Both ("[AFFINITY] Mode={0} Process={1} PID={2}" -f $Mode,$p.ProcessName,$p.Id) ([ConsoleColor]::DarkCyan)
+# --- Output summary ---
+Write-Both ("[AFFINITY] Target=P-cores only | Process={0} PID={1}" -f $p.ProcessName,$p.Id) ([ConsoleColor]::DarkCyan)
 Write-Both ("[AFFINITY] INTENDED LPs : {0}  (ranges: {1})" -f ($intendedLPs -join ','), $intendedRange)
 Write-Both ("[AFFINITY] INTENDED HEX : {0}" -f $intendedHex)
 Write-Both ("[AFFINITY] APPLIED  LPs : {0}  (ranges: {1})" -f (($appliedLPs -join ',')), $appliedRange)
 Write-Both ("[AFFINITY] APPLIED  HEX : {0}" -f $appliedHex)
 
 switch ($appliedStatus) {
-  "APPLIED"  { Write-Both "[AFFINITY] Status: APPLIED (exact match)" ([ConsoleColor]::Green) }
+  "APPLIED"  { Write-Both "[AFFINITY] Status: APPLIED (exact P-core binding)" ([ConsoleColor]::Green) }
   "PARTIAL"  { Write-Both "[AFFINITY] Status: PARTIAL (some bits rejected by OS/anti-cheat/protected threads)" ([ConsoleColor]::Yellow) }
   default    { Write-Both "[AFFINITY] Status: FAILED (no change)" ([ConsoleColor]::Red) }
+}
+
+if ($logical -gt 64) {
+  Write-Both "[AFFINITY] Note: System has >64 LP (multiple groups). This helper targets Group 0 only." ([ConsoleColor]::Yellow)
 }
