@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - V7.2.2 BETA Stable
+:: UNIVERSAL SIM VR OPTIMIZER - V7.2.5 BETA untested unStable
 :: ============================================================
 
 :MENU
@@ -45,6 +45,10 @@ set "RESTART_ONEDRIVE=YES"
 set "RESTART_EDGE=YES"
 set "RESTART_CCLEANER=YES"
 set "RESTART_ICLOUD=YES"
+
+:: AFFINITY MODE: Auto | All | PCoresOnly | ECoresOnly | PhysicalOnly
+:: - Auto: Intel hybrid -> P-cores only; others -> All LPs
+set "AFFINITY_MODE=Auto"
 
 :: --- LOG ROTATION ---
 if exist "%LOGFILE%" (
@@ -106,43 +110,62 @@ if "%LAUNCH_METHOD%"=="STEAM" (
     if defined DCS_BIN ( pushd "!DCS_BIN:\DCS.exe=!" & start "" "DCS.exe" & popd )
 )
 
+
+
 :: DETECTION
-set /a retry_count=0
+set "retry_count=0"
+
 :WAIT_GAME
 set "ACTIVE_EXE="
+
+rem ---- scan processes ----
 for %%E in ("%GAME_EXE%" "DCS_mt.exe" "FlightSimulator.exe") do (
     tasklist /NH /FI "IMAGENAME eq %%~E" | find /i "%%~E" >nul
     if not errorlevel 1 set "ACTIVE_EXE=%%~E"
 )
+
+rem ---- found game ----
 if defined ACTIVE_EXE (
     set "GAME_EXE=%ACTIVE_EXE%"
     echo [%TIME%] [DETECT] Process active: !GAME_EXE! >> "%LOGFILE%"
     goto GAME_DETECTED
 )
+
+rem ---- increment retry counter OUTSIDE the () block ----
 set /a retry_count+=1
-echo [!] Waiting... (!retry_count!/7)
-if !retry_count! GEQ 7 (
+
+rem ---- echo retry using percent expansion (no delayed expansion needed) ----
+echo [!] Waiting... (%retry_count%/7)
+
+rem ---- max retries reached ----
+if %retry_count% GEQ 7 (
     echo [%TIME%] [TIMEOUT] Game not found >> "%LOGFILE%"
     goto RESTORE
 )
+
+rem ---- wait and repeat ----
 timeout /t 5 >nul
 goto WAIT_GAME
 
+
 :GAME_DETECTED
 echo [!] %GAME_EXE% detected. Optimizing Performance...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$n='%GAME_EXE%'.Replace('.exe',''); $p=Get-Process $n -ErrorAction SilentlyContinue; if($p){ " ^
-    "try { $p.PriorityClass='High'; " ^
-    "$cpu=Get-CimInstance Win32_Processor; $cores=$cpu.NumberOfCores; $logical=$cpu.NumberOfLogicalProcessors; " ^
-    "$mask=[int64]0; if($logical -gt $cores){ for($i=0; $i -lt $cores; $i++){ $mask+=[int64][math]::Pow(2,$i*2) } } " ^
-    "else { for($i=0; $i -lt $cores; $i++){ $mask+=[int64][math]::Pow(2,$i) } }; " ^
-    "$p.ProcessorAffinity=[IntPtr]$mask; Write-Host 'Optimized Performance' -ForegroundColor Cyan " ^
-    "} catch { Write-Host 'Affinity partially applied' -ForegroundColor Yellow } }"
-	
+echo [%TIME%] [DETECT] Applying Affinity Mode: %AFFINITY_MODE% >> "%LOGFILE%"
+
+:: Ensure the helper exists
+if not exist "%~dp0Set-Affinity.ps1" (
+  echo [ERROR] Helper missing: "%~dp0Set-Affinity.ps1" >> "%LOGFILE%"
+  goto AFTER_AFFINITY
+)
+
+:: Run the helper — it writes to console AND to "%LOGFILE%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Set-Affinity.ps1" -ProcessName "%GAME_EXE%" -Mode %AFFINITY_MODE% -LogPath "%LOGFILE%"
+
+:AFTER_AFFINITY
 echo ============================================================
 echo %VERSION_NAME% RUNNING - DO NOT CLOSE THIS WINDOW
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; Write-Host ' and ' -NoNewline; Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red;"
+  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; Write-Host ', ' -NoNewline; Write-Host ' SHARK ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; Write-Host ' and, ' -NoNewline; Write-Host ' goldfinger ' -ForegroundColor Yellow -BackgroundColor Red;"
 echo ============================================================
 
 :WAIT_EXIT
