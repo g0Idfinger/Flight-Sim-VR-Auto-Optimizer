@@ -159,7 +159,7 @@ if not exist "%~dp0Set-Affinity.ps1" (
 )
 
 :: Run the helper — it writes to console AND to "%LOGFILE%"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Set-Affinity.ps1" -ProcessName "%GAME_EXE%" -Mode %AFFINITY_MODE% -LogPath "%LOGFILE%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Set-Affinity.ps1" -ProcessName "%GAME_EXE%" -LogPath "%LOGFILE%" -IntelPcoreCount 8
 
 :AFTER_AFFINITY
 echo ============================================================
@@ -237,7 +237,3 @@ echo.
 echo Operation complete. Returning to main menu...
 timeout /t 5 >nul
 goto MENU
-
-
-
-
