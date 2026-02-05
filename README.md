@@ -2,7 +2,7 @@
 
 
 ## How to use:
-- Copy the code into a text file and save it as VR_Optimizer.bat.
+- Download the above OptimizerBetaV7.2.2.bat
 - Right-click -> Run as Administrator (Required for CPU priority and service management).
 - Select your Simulator from the menu and enjoy your flight! ✈️
 ---
