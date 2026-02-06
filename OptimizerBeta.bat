@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - V7.2.2.2.1 BETA Stable
+:: UNIVERSAL SIM VR OPTIMIZER - V7.2.2.2.2 BETA Stable
 :: ============================================================
 
 :PREMENU
@@ -333,4 +333,5 @@ echo.
 echo Operation complete. Returning to main menu...
 timeout /t 5
 goto PREMENU
+
 
