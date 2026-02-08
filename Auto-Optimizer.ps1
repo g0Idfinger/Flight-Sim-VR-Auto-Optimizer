@@ -468,6 +468,66 @@ function Invoke-RestartCustom {
 }
 
 #endregion PROCESS TOOLS
+
+#region CPU AFFINITY SYSTEM
+<#
+    CPU Affinity System
+    - Universal Intel 12th gen+ and AMD Ryzen support
+    - Detects P-core threads automatically
+    - Applies affinity mask to simulator process
+#>
+
+function Get-PCoreAffinityMask {
+    # Query CPU topology
+    $cpu = Get-CimInstance Win32_Processor
+
+    $logical  = $cpu.NumberOfLogicalProcessors
+    $physical = $cpu.NumberOfCores
+
+    # P-core threads = physical cores * 2 (SMT)
+    $pThreads = $physical * 2
+
+    # Safety clamp
+    if ($pThreads -gt $logical) {
+        $pThreads = $logical
+    }
+
+    # Build mask: first $pThreads bits = 1
+    $mask = 0
+    for ($i = 0; $i -lt $pThreads; $i++) {
+        $mask = $mask -bor (1 -shl $i)
+    }
+
+    return $mask
+}
+
+function Set-PCoreAffinity {
+    param(
+        [Parameter(Mandatory)][string]$ProcessName
+    )
+
+    $proc = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue
+    if (-not $proc) {
+        Write-Log "Set-PCoreAffinity: Process $ProcessName not found" -Level WARN
+        return
+    }
+
+    $mask = Get-PCoreAffinityMask
+
+    try {
+        $proc.ProcessorAffinity = $mask
+        $binary = "{0:b}" -f $mask
+        Write-Log "Applied P-core affinity mask ($mask) binary=[$binary] to $ProcessName"
+        Write-Info "Applied P-core affinity to $ProcessName"
+    }
+    catch {
+        Write-Log "Failed to apply affinity to $ProcessName: $_" -Level ERROR
+        Write-Warn "Failed to apply CPU affinity."
+    }
+}
+
+#endregion CPU AFFINITY SYSTEM
+
 #region POWER PLAN TOOLS
 <#
     Power Plan Tools
@@ -999,8 +1059,8 @@ function Launch-Simulator {
     $proc = Wait-ForSimProcess -ExeName $sim.ExeName
     if (-not $proc) { return $null }
 
-    # Apply CPU optimization
-    Optimize-SimProcess -Process $proc
+    # Apply P-core affinity 
+    Set-PCoreAffinity -ProcessName ($sim.ExeName -replace ".exe","")
 
     return $proc
 }
