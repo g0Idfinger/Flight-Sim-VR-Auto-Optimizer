@@ -521,7 +521,7 @@ function Set-PCoreAffinity {
         Write-Info "Applied P-core affinity to $ProcessName"
     }
     catch {
-        Write-Log "Failed to apply affinity to $ProcessName: $_" -Level ERROR
+        Write-Log "Failed to apply affinity to ${ProcessName}: $_" -Level ERROR
         Write-Warn "Failed to apply CPU affinity."
     }
 }
