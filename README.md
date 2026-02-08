@@ -57,5 +57,12 @@ After the simulator exits:
 
 ---
 
-## 📂 File Structure
+## ▶️ Running the Application
+
+### **Option 1 — Right‑click**
+Right‑click `VR-Optimizer.ps1` → **Run with PowerShell**
+
+### **Option 2 — Terminal**
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\VR-Optimizer.ps1
 
