@@ -7,7 +7,7 @@ Designed for **MSFS 2020/2024**, **DCS**, and **X‑Plane 12**.
 
 ## 📸 Screenshots
 
-> Replace these image paths with your own screenshots once you capture them.
+> Replace these image paths when I find the time to take screenshots... note for self
 
 ### Main Menu
 ![Main Menu](screenshots/main-menu.png)
@@ -250,21 +250,3 @@ sim_launcher.log
 If it fails, check folder permissions.
 
 ---
-
-## 📄 License
-
-This project is yours — feel free to modify, extend, or distribute it as you wish.
-
----
-
-## 🙋 Want Enhancements?
-
-I can generate:
-- A **logo**
-- A **GitHub release template**
-- A **PowerShell module version**
-- A **packaged EXE**
-- A **tray‑icon version**
-- A **settings GUI**
-
-Just tell me what direction you want to take it.
