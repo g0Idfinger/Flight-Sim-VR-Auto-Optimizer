@@ -346,7 +346,7 @@ function Stop-ProcessSafe {
         }
     }
     catch {
-        Write-Log "Failed to kill process $Name: $_" -Level ERROR
+        Write-Log "Failed to kill process ${Name}: $_" -Level ERROR
         Write-Warn "Could not kill: $Name"
     }
 }
@@ -368,7 +368,7 @@ function Start-ProcessSafe {
         Write-Success "Started: $Command"
     }
     catch {
-        Write-Log "Failed to start $Command: $_" -Level ERROR
+        Write-Log "Failed to start ${Command}: $_" -Level ERROR
         Write-Warn "Could not start: $Command"
     }
 }
@@ -515,7 +515,7 @@ function Set-PowerPlan {
         Write-Info "Power plan set to: $Guid"
     }
     catch {
-        Write-Log "Failed to set power plan $Guid: $_" -Level ERROR
+        Write-Log "Failed to set power plan ${Guid}: $_" -Level ERROR
         Write-Warn "Could not switch power plan."
     }
 }
@@ -587,7 +587,7 @@ function Stop-ServicesForVR {
             Write-Log "Stopped service: $svc"
         }
         catch {
-            Write-Log "Failed to stop service $svc: $_" -Level WARN
+            Write-Log "Failed to stop service ${svc}: $_" -Level WARN
         }
     }
 }
@@ -606,7 +606,7 @@ function Start-ServicesAfterVR {
             Write-Log "Started service: $svc"
         }
         catch {
-            Write-Log "Failed to start service $svc: $_" -Level WARN
+            Write-Log "Failed to start service ${svc}: $_" -Level WARN
         }
     }
 }
@@ -792,7 +792,7 @@ function Launch-SteamSim {
         Start-Process "steam://run/$AppId"
     }
     catch {
-        Write-Log "Failed to launch Steam app $AppId: $_" -Level ERROR
+        Write-Log "Failed to launch Steam app ${AppId}: $_" -Level ERROR
         Write-ErrorUI "Failed to launch Steam simulator."
     }
 }
