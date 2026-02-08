@@ -528,6 +528,28 @@ function Set-PCoreAffinity {
     }
 }
 
+function Set-HighPriority {
+    param(
+        [Parameter(Mandatory)][string]$ProcessName
+    )
+
+    $proc = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue
+    if (-not $proc) {
+        Write-Log "{Set-HighPriority}: Process ${ProcessName} not found" -Level WARN
+        return
+    }
+
+    try {
+        $proc.PriorityClass = "High"
+        Write-Log "Set process priority to HIGH for $ProcessName"
+        Write-Info "Set HIGH priority for $ProcessName"
+    }
+    catch {
+        Write-Log "Failed to set HIGH priority for ${ProcessName}: $_" -Level ERROR
+        Write-Warn "Failed to set HIGH priority."
+    }
+}
+
 #endregion CPU AFFINITY SYSTEM
 
 #region POWER PLAN TOOLS
@@ -989,50 +1011,6 @@ function Wait-ForSimProcess {
 }
 
 # ------------------------------------------------------------
-# Apply CPU priority + affinity
-# ------------------------------------------------------------
-function Optimize-SimProcess {
-    param(
-        [Parameter(Mandatory)]
-        [System.Diagnostics.Process]$Process
-    )
-
-    Write-Info "Applying CPU priority and affinity..."
-    Write-Log "Applying CPU optimization to PID $($Process.Id)"
-
-    try {
-        $Process.PriorityClass = "High"
-
-        $cpu = Get-CimInstance Win32_Processor
-        $cores = $cpu.NumberOfCores
-        $logical = $cpu.NumberOfLogicalProcessors
-
-        $mask = [int64]0
-
-        if ($logical -gt $cores) {
-            # Hyperthreading: use physical cores only
-            for ($i = 0; $i -lt $cores; $i++) {
-                $mask += [int64][math]::Pow(2, $i * 2)
-            }
-        }
-        else {
-            # No hyperthreading
-            for ($i = 0; $i -lt $cores; $i++) {
-                $mask += [int64][math]::Pow(2, $i)
-            }
-        }
-
-        $Process.ProcessorAffinity = [IntPtr]$mask
-        Write-Success "CPU optimization applied."
-        Write-Log "CPU affinity mask applied: $mask"
-    }
-    catch {
-        Write-Log "Failed to apply CPU optimization: $_" -Level WARN
-        Write-Warn "CPU optimization partially applied."
-    }
-}
-
-# ------------------------------------------------------------
 # MAIN LAUNCH FUNCTION
 # ------------------------------------------------------------
 function Launch-Simulator {
@@ -1060,7 +1038,8 @@ function Launch-Simulator {
     # Wait for process
     $proc = Wait-ForSimProcess -ExeName $sim.ExeName
     if (-not $proc) { return $null }
-
+    # Apply HIGH priority 
+    Set-HighPriority -ProcessName ($sim.ExeName -replace ".exe","")
     # Apply P-core affinity 
     Set-PCoreAffinity -ProcessName ($sim.ExeName -replace ".exe","")
 
