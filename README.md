@@ -1,13 +1,61 @@
-# Flight-Sim-VR-Auto-Optimizer
+# VR Optimizer — PowerShell Edition
 
+A modern, single‑file PowerShell application that prepares your Windows system for VR flight simulation, launches your simulator with optimized CPU settings, and restores your system afterward.  
+Designed for **MSFS 2020/2024**, **DCS**, and **X‑Plane 12**.
 
-## How to use:
-- Download the above OptimizerBetaV7.2.2.bat or download one of the Releases, preferably Latest and unzip it.
-- Right-click -> Run as Administrator (Required for CPU priority and service management).
-- Select your Simulator from the menu and enjoy your flight! ✈️
 ---
-## ⚠️ Disclaimer & Known Issues
-Please read before use:
-- Antivirus/Windows Defender: Some scanners might flag .bat scripts that use PowerShell commands as a "False Positive." This script is transparent—you can inspect every line of code in Notepad.
-- Custom Paths: If you installed DCS World or Virtual Desktop in a non-standard directory (outside of C:, D:, etc.), you might need to adjust the path variables in the CONFIG section of the script.
-- Experimental Feature: The CPU Affinity optimization works best on modern Intel (12th Gen+) and AMD Ryzen CPUs. If you experience unusual stuttering, you can disable the affinity block by putting a :: before the PowerShell command in the script.
+
+## ✨ Features
+
+### 🔧 System Optimization
+- Kills background apps (OneDrive, Edge, CCleaner, iCloud, etc.)
+- Stops unnecessary services (SysMain, Spooler)
+- Enables NVIDIA Persistence Mode
+- Flushes DNS
+- Launches Virtual Desktop Streamer (if installed)
+
+### 🚀 Simulator Launching
+Supports:
+- **MSFS 2024 (Steam / Store)**
+- **MSFS 2020 (Steam / Store)**
+- **DCS World (Steam / Standalone)**
+- **X‑Plane 12 (Steam / Standalone)**
+
+Includes:
+- Steam launching via `steam://run/<appid>`
+- Store/GamePass launching via AppX URI resolution
+- Auto‑detection of standalone DCS & X‑Plane paths
+- Process detection + wait loop
+- CPU priority + affinity optimization
+
+### 🔄 System Restore
+After the simulator exits:
+- Restores services
+- Restores previous power plan
+- Disables NVIDIA persistence mode
+- Restarts apps (Edge, Discord, OneDrive, CCleaner, iCloud)
+- Restarts custom apps defined in config
+
+### ⚙️ Configuration
+- Clean `config.json` stored next to the script
+- Auto‑created on first run
+- Toggle kill/restart flags
+- Manage custom kill/restart lists
+- Set default simulator
+- Optional auto‑run on script start
+
+### 🖥️ Modern Terminal UI
+- Light box‑drawing borders
+- Clean, centered headers
+- Color‑coded output
+- Intuitive menus
+
+### 📝 Logging
+- Full session logging to `sim_launcher.log`
+- Automatic log rotation (2MB)
+- Session start/end markers
+
+---
+
+## 📂 File Structure
+
