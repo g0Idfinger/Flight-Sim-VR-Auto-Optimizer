@@ -1094,12 +1094,19 @@ function Toggle-Flag {
         [Parameter(Mandatory)][string]$Path
     )
 
-    $current = $Config.$Path
+    # Split "Kill.OneDrive" into "Kill" and "OneDrive"
+    $parts = $Path.Split('.')
+    $section = $parts[0]
+    $key     = $parts[1]
+
+    $current = $Config[$section][$key]
+
     if ($current -is [bool]) {
-        $Config.$Path = -not $current
+        $Config[$section][$key] = -not $current
         Save-Config -Config $Config
     }
 }
+
 
 function Show-ConfigMenu {
     while ($true) {
