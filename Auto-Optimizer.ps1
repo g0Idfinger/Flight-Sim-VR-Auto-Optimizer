@@ -158,6 +158,7 @@ $DefaultConfig = @{
         CCleaner        = $true
         iCloudServices  = $true
         iCloudDrive     = $true
+        Discord         = $true 
         Custom          = @()   # array of process names
     }
     Restart = @{
@@ -384,6 +385,7 @@ function Invoke-KillBuiltIn {
     if ($Config.Kill.CCleaner)       { Stop-ProcessSafe -Name "CCleaner64" }
     if ($Config.Kill.iCloudServices) { Stop-ProcessSafe -Name "iCloudServices" }
     if ($Config.Kill.iCloudDrive)    { Stop-ProcessSafe -Name "iCloudDrive" }
+    if ($Config.Kill.Discord) 		 { Stop-ProcessSafe -Name "Discord" }
 }
 
 # ------------------------------------------------------------
@@ -1179,14 +1181,15 @@ function Show-ConfigMenu {
         Write-White "    [3] CCleaner        = $($Config.Kill.CCleaner)"
         Write-White "    [4] iCloudServices  = $($Config.Kill.iCloudServices)"
         Write-White "    [5] iCloudDrive     = $($Config.Kill.iCloudDrive)"
+        Write-White "    [6] Discord         = $($Config.Kill.Discord)"
         Write-Host ""
 
         Write-White "  Restart Flags:"
-        Write-White "    [6] Restart Edge     = $($Config.Restart.Edge)"
-        Write-White "    [7] Restart Discord  = $($Config.Restart.Discord)"
-        Write-White "    [8] Restart OneDrive = $($Config.Restart.OneDrive)"
-        Write-White "    [9] Restart CCleaner = $($Config.Restart.CCleaner)"
-        Write-White "    [0] Restart iCloud   = $($Config.Restart.iCloud)"
+        Write-White "    [7] Restart Edge     = $($Config.Restart.Edge)"
+        Write-White "    [8] Restart Discord  = $($Config.Restart.Discord)"
+        Write-White "    [9] Restart OneDrive = $($Config.Restart.OneDrive)"
+        Write-White "    [10] Restart CCleaner = $($Config.Restart.CCleaner)"
+        Write-White "    [11] Restart iCloud   = $($Config.Restart.iCloud)"
         Write-Host ""
 
         Write-White "  D) Set default sim (current: $($Config.DefaultSim))"
@@ -1203,11 +1206,12 @@ function Show-ConfigMenu {
             '^3$' { Toggle-Flag 'Kill.CCleaner' }
             '^4$' { Toggle-Flag 'Kill.iCloudServices' }
             '^5$' { Toggle-Flag 'Kill.iCloudDrive' }
-            '^6$' { Toggle-Flag 'Restart.Edge' }
-            '^7$' { Toggle-Flag 'Restart.Discord' }
-            '^8$' { Toggle-Flag 'Restart.OneDrive' }
-            '^9$' { Toggle-Flag 'Restart.CCleaner' }
-            '^0$' { Toggle-Flag 'Restart.iCloud' }
+            '^6$' { Toggle-Flag 'Kill.Discord' }
+            '^7$' { Toggle-Flag 'Restart.Edge' }
+            '^8$' { Toggle-Flag 'Restart.Discord' }
+            '^9$' { Toggle-Flag 'Restart.OneDrive' }
+            '^10$' { Toggle-Flag 'Restart.CCleaner' }
+            '^11$' { Toggle-Flag 'Restart.iCloud' }
             '^[dD]$' { Set-DefaultSim }
             '^[aA]$' {
                 $Config.AutoRunOnStart = -not $Config.AutoRunOnStart
