@@ -1,5 +1,8 @@
 # VR Optimizer — PowerShell Edition
 
+## Requires Powershell 7.5+
+[Download](https://github.com/powershell/powershell/releases)
+
 A modern, single‑file PowerShell application that prepares your Windows system for VR flight simulation, launches your simulator with optimized CPU settings, and restores your system afterward.  
 Designed for **MSFS 2020/2024**, **DCS**, and **X‑Plane 12**.
 
