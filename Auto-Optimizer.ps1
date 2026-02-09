@@ -440,6 +440,7 @@ function Invoke-RestartBuiltIn {
         Write-Log "OneDrive Pfad not found." -Level WARN
         Write-Warn "OneDrive executable not found."
     }
+    }
 
     if ($Config.Restart.CCleaner) {
         $ccleaner = "C:\Program Files\CCleaner\CCleaner64.exe"
