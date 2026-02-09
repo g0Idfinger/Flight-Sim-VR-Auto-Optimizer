@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.5.b)
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.6.d)
 :: - Persistent configuration for which apps are killed/restored
 :: - DEFAULT_SIM + AUTO_RUN_ON_START
 :: - Config stored in vr_opt.cfg next to this script
@@ -71,7 +71,7 @@ if defined DEFAULT_SIM (
 )
 
 :: -----------------------------
-:: Resolve sim by selection (1..9)
+:: Resolve sim by selection (1..13)
 :: -----------------------------
 :RESOLVE_SIM
 set "choice=%~1"
@@ -84,8 +84,8 @@ if "%choice%"=="1" (
 ) else if "%choice%"=="3" (
     set "STEAM_APPID=223750" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Steam)"
 ) else if "%choice%"=="5" (
-    set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App"
-	"GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Store)"
+   set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App"
+    set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Store)"
 ) else if "%choice%"=="6" (
     set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe^!App"
     set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
@@ -99,11 +99,21 @@ if "%choice%"=="1" (
     set "LAUNCH_METHOD=XPLANE_STANDALONE"
     set "GAME_EXE=X-Plane.exe"
     set "VERSION_NAME=X-Plane 12 (Standalone)"
-	) else if "%choice%"=="10" (
-    set "STEAM_APPID=2937600"
+)else if "%choice%"=="10" (
     set "GAME_EXE=AssettoCorsaEVO.exe"
-    set "VERSION_NAME=Assetto Corsa EVO (Steam)"
-) else (
+    set "VERSION_NAME=Assetto Corsa EVO (VR)"
+    set "LAUNCH_METHOD=VR_ACE"  :: VR only
+) else if "%choice%"=="11" (
+    set "GAME_EXE=AssettoCorsaEVO.exe"
+    set "VERSION_NAME=Assetto Corsa EVO (2D)"
+    set "LAUNCH_METHOD=ACE_2D"  :: 2D only
+) else if "%choice%"=="12" (
+    set "LAUNCH_METHOD=AMS2_OC"
+    set "VERSION_NAME=Automobilista 2 (VR - OpenComposite)"
+) else if "%choice%"=="13" (
+    set "LAUNCH_METHOD=AMS2_2D"
+    set "VERSION_NAME=Automobilista 2 (2D)"
+)else (
 ::    set "choice="
 if not defined VERSION_NAME set "choice="
 
@@ -129,13 +139,16 @@ powershell -NoProfile -Command "Write-Host '[5] MSFS 2024 (Store / GamePass)' -F
 powershell -NoProfile -Command "Write-Host '[6] MSFS 2020 (Store / GamePass)' -ForegroundColor Yellow"
 powershell -NoProfile -Command "Write-Host '[7] DCS World (Standalone)' -ForegroundColor Yellow"
 powershell -NoProfile -Command "Write-Host '[9] X-Plane 12 (Standalone)' -ForegroundColor Yellow"
-powershell -NoProfile -Command "Write-Host '[10] Assetto Corsa EVO (Steam)' -ForegroundColor Green"
+powershell -NoProfile -Command "Write-Host '[10] Assetto Corsa EVO (VR OpenXR)' -ForegroundColor Green"
+powershell -NoProfile -Command "Write-Host '[11] Assetto Corsa EVO (2D)' -ForegroundColor Yellow"
+powershell -NoProfile -Command "Write-Host '[12] Automobilista 2 (VR - OpenComposite)' -ForegroundColor Green"
+powershell -NoProfile -Command "Write-Host '[13] Automobilista 2 (2D)' -ForegroundColor Yellow"
 echo.
 powershell -NoProfile -Command "Write-Host '[B] Back to Main Menu' -ForegroundColor White"
 powershell -NoProfile -Command "Write-Host '[X] Exit' -ForegroundColor Red"
 echo.
 
-set /p choice="Selection (1-10/B/X): "
+set /p choice="Selection (1-13/B/X): "
 
 if /i "%choice%"=="X" exit /b
 if /i "%choice%"=="B" goto MAIN_MENU
@@ -185,15 +198,18 @@ if exist "C:\Program Files\Virtual Desktop Streamer\VirtualDesktop.Streamer.exe"
 if "%LAUNCH_METHOD%"=="STEAM" (
     start "" "steam://run/%STEAM_APPID%"
 
-) else if "%LAUNCH_METHOD%"=="STORE" (
+) 
+
+if "%LAUNCH_METHOD%"=="STORE" (
     echo [%TIME%] [LAUNCH] Store-URI: !STORE_URI! >> "%LOGFILE%"
     powershell -NoProfile -Command "Start-Process $env:STORE_URI -ArgumentList ' -FastLaunch'"
+)
 
-) else if "%LAUNCH_METHOD%"=="DCS_STORE" (
+if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_BIN="
     for %%D in (C D E F G H I J) do (
-        if exist "%%D:\Eagle Dynamics\DCS World\bin-mt\DCS.exe" set "DCS_BIN=%%D:\Eagle Dynamics\DCS World\bin-mt\DCS.exe"
-        if exist "%%D:\DCS World\bin-mt\DCS.exe" set "DCS_BIN=%%D:\DCS World\bin-mt\DCS.exe"
+        if exist "%%D:\Eagle Dynamics\DCS World\bin\DCS.exe" set "DCS_BIN=%%D:\Eagle Dynamics\DCS World\bin\DCS.exe"
+        if exist "%%D:\DCS World\bin\DCS.exe" set "DCS_BIN=%%D:\DCS World\bin\DCS.exe"
     )
     if defined DCS_BIN (
         pushd "!DCS_BIN:\DCS.exe=!"
@@ -201,7 +217,9 @@ if "%LAUNCH_METHOD%"=="STEAM" (
         popd
     )
 
-) else if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
+)
+
+if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
     set "XPLANE_PATH="
     for %%D in (C D E F G H I J) do (
         if exist "%%D:\X-Plane 12\X-Plane.exe" (
@@ -220,13 +238,110 @@ if "%LAUNCH_METHOD%"=="STEAM" (
         timeout /t 3 >nul
         goto RESTORE
     )
+	)
+	if "%LAUNCH_METHOD%"=="AMS2_OC" (
+    echo [%TIME%] [LAUNCH] Starting Automobilista 2 VR >> "%LOGFILE%"
+    set "AMS2_PATH="
+
+    for %%D in (C D E F G H I J) do (
+        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2\AMS2AVX.exe" (
+            set "AMS2_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2"
+        )
+    )
+
+    if defined AMS2_PATH (
+        pushd "!AMS2_PATH!"
+        start "" "AMS2AVX.exe" -vr -openvr
+        popd
+    ) else (
+        echo [%TIME%] [ERROR] AMS2AVX.exe not found >> "%LOGFILE%"
+        timeout /t 3 >nul
+        goto RESTORE
+    )
 )
+
+if "%LAUNCH_METHOD%"=="AMS2_2D" (
+    echo [%TIME%] [LAUNCH] Starting Automobilista 2 2D >> "%LOGFILE%"
+    set "AMS2_PATH="
+
+    for %%D in (C D E F G H I J) do (
+        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2\AssettoCorsaEVO.exe" (
+            set "AMS2_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2"
+        )
+    )
+
+    if defined AMS2_PATH (
+        pushd "!AMS2_PATH!"
+        start "" "AMS2.exe"
+        popd
+    ) else (
+        echo [%TIME%] [ERROR] AMS2.exe not found >> "%LOGFILE%"
+        timeout /t 3 >nul
+        goto RESTORE
+    )
+)
+
+if "%LAUNCH_METHOD%"=="VR_ACE" (
+    if not defined GAME_EXE (
+        echo [%TIME%] [ERROR] GAME_EXE not defined >> "%LOGFILE%"
+        goto RESTORE
+    )
+
+    set "ACE_PATH="
+
+    for %%D in (C D E F G H I J) do (
+        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\%GAME_EXE%" (
+            set "ACE_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO"
+        )
+    )
+
+    if defined ACE_PATH (
+        echo [%TIME%] [LAUNCH] Starting Assetto Corsa EVO VR >> "%LOGFILE%"
+        start "" "%ACE_PATH%\%GAME_EXE%" -vr -openxr
+    ) else (
+        echo [%TIME%] [ERROR] Assetto Corsa EVO not found >> "%LOGFILE%"
+        timeout /t 3 >nul
+        goto RESTORE
+    )
+)
+
+if "%LAUNCH_METHOD%"=="ACE_2D" (
+    if not defined GAME_EXE goto RESTORE
+
+    set "ACE_PATH="
+
+    for %%D in (C D E F G H I J) do (
+        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\%GAME_EXE%" (
+            set "ACE_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO"
+        )
+    )
+
+    if defined ACE_PATH (
+        echo [%TIME%] [LAUNCH] Starting Assetto Corsa EVO 2D >> "%LOGFILE%"
+        start "" "%ACE_PATH%\%GAME_EXE%"
+    ) else (
+        echo [%TIME%] [ERROR] Assetto Corsa EVO not found >> "%LOGFILE%"
+        timeout /t 3 >nul
+        goto RESTORE
+    )
+)
+
 
 :: DETECTION
 set /a retry_count=0
 :WAIT_GAME
 set "ACTIVE_EXE="
-for %%E in ("%GAME_EXE%" "DCS_mt.exe" "DCS.exe" "FlightSimulator.exe" "GameLauncher.exe" "acs2.exe") do (
+::for %%E in ("%GAME_EXE%" "DCS_mt.exe" "DCS.exe" "FlightSimulator.exe" "GameLauncher.exe") do (
+for %%E in (
+ "%GAME_EXE%"
+ "FlightSimulator2024.exe"
+ "FlightSimulator.exe"
+ "AMS2AVX.exe"
+ "AMS2.exe"
+ "AssettoCorsaEVO.exe"
+ "DCS_mt.exe"
+ "DCS.exe"
+) do (
     tasklist /NH /FI "IMAGENAME eq %%~E" | find /i "%%~E" >nul
     if not errorlevel 1 set "ACTIVE_EXE=%%~E"
 )
@@ -243,11 +358,6 @@ if !retry_count! GEQ 7 (
 )
 timeout /t 5 >nul
 goto WAIT_GAME
-
-:GAME_DETECTED
-echo [!] %GAME_EXE% detected. Optimizing Performance...
-:GAME_DETECTED
-echo [!] %GAME_EXE% detected. Optimizing Performance...
 
 :: -----------------------------
 :: CPU Vendor / Affinity / X3D-Aware Block
@@ -323,11 +433,13 @@ setlocal EnableDelayedExpansion
 set "ULT_BUILTIN=e9a42b02-d5df-448d-aa00-03f14749eb61"
 set "ULT_GUID="
 
+
 rem Check if the built-in Ultimate plan exists already
 powercfg /list | findstr /I "%ULT_BUILTIN%" >nul
 if not errorlevel 1 (
     set "ULT_GUID=%ULT_BUILTIN%"
 ) else (
+
     rem Try to create Ultimate by duplicating the built-in scheme; parse returned GUID
     for /f "tokens=3 delims=:()" %%G in ('
         powercfg -duplicatescheme %ULT_BUILTIN% 2^>nul ^| findstr /I "GUID"
@@ -343,6 +455,7 @@ if defined ULT_GUID (
         endlocal & goto :eof
     )
 )
+
 
 rem If we got here, the Ultimate activation failed—fallback to High performance
 echo [%TIME%] [PREP] Ultimate unavailable/failed; falling back to High Performance>>"%LOGFILE%"
@@ -374,6 +487,7 @@ if /i "!RESTART_DISCORD!"=="YES" call :restart_discord
 if /i "!RESTART_ONEDRIVE!"=="YES" call :restart_onedrive
 if /i "!RESTART_CCLEANER!"=="YES" call :restart_ccleaner
 if /i "!RESTART_ICLOUD!"=="YES" call :restart_icloud
+if /i "!RESTART_CHROME!"=="YES" call :restart_chrome
 
 :: Custom restarts (CUST_R_CMD_i + CUST_R_ARGS_i)
 call :restart_custom
@@ -410,6 +524,7 @@ echo  [9]  Restart Discord  = !RESTART_DISCORD!
 echo  [10] Restart OneDrive = !RESTART_ONEDRIVE!
 echo  [11] Restart CCleaner = !RESTART_CCLEANER!
 echo  [12] Restart iCloud   = !RESTART_ICLOUD!
+echo  [13] Restart Chrome   = !RESTART_CHROME!
 echo.
 
 powershell -NoProfile -Command "Write-Host 'DEFAULTS:' -ForegroundColor Cyan"
@@ -441,12 +556,13 @@ if "%_cfg_choice%"=="9"  call :toggle RESTART_DISCORD
 if "%_cfg_choice%"=="10" call :toggle RESTART_ONEDRIVE
 if "%_cfg_choice%"=="11" call :toggle RESTART_CCLEANER
 if "%_cfg_choice%"=="12" call :toggle RESTART_ICLOUD
+if "%_cfg_choice%"=="13" call :toggle RESTART_CHROME
 goto CONFIG_MENU
 
 :SET_DEFAULT_SIM
 cls
 echo ============================================================
-echo        SET DEFAULT SIM (1..10)
+echo        SET DEFAULT SIM (1..13)
 echo ============================================================
 echo 1 = MSFS 2024 (Steam)
 echo 2 = MSFS 2020 (Steam)
@@ -456,49 +572,18 @@ echo 6 = MSFS 2020 (Store/GamePass)
 echo 7 = DCS World (Standalone)
 echo 8 = X-Plane 12 (Steam)
 echo 9 = X-Plane 12 (Standalone)
-echo 10 = ACE (Steam)
+echo 10 = Assetto Corsa EVO (VR)
+echo 11 = Assetto Corsa EVO (2D)
+echo 12 = Automobilista 2 (VR)
+echo 13 = Automobilista 2 (2D)
 echo.
 echo [Enter] to clear (no default)
 set /p _def="Default sim number: "
 if "%_def%"=="" ( set "DEFAULT_SIM=" & goto CONFIG_MENU )
-for %%N in (1 2 3 5 6 7 8 9 10) do if "%%N"=="%_def%" ( set "DEFAULT_SIM=%%N" & goto CONFIG_MENU )
+for %%N in (1 2 3 5 6 7 8 9 10 11 12 13) do if "%%N"=="%_def%" ( set "DEFAULT_SIM=%%N" & goto CONFIG_MENU )
 echo Invalid selection. Press any key to continue...
 pause >nul
 goto SET_DEFAULT_SIM
-
-:SET_DEFAULT_SIM_AND_LAUNCH
-cls
-echo ============================================================
-echo        SET DEFAULT SIM (1..10) TO PROCEED
-echo ============================================================
-echo 1 = MSFS 2024 (Steam)
-echo 2 = MSFS 2020 (Steam)
-echo 3 = DCS World (Steam)
-echo 5 = MSFS 2024 (Store/GamePass)
-echo 6 = MSFS 2020 (Store/GamePass)
-echo 7 = DCS World (Standalone)
-echo 8 = X-Plane 12 (Steam)
-echo 9 = X-Plane 12 (Standalone)
-echo 10 = ACE (Steam)
-echo.
-echo [Enter] to cancel and return to the main menu
-set /p _def="Default sim number: "
-if "%_def%"=="" goto MAIN_MENU
-for %%N in (1 2 3 5 6 7 8 9 10) do if "%%N"=="%_def%" (
-    set "DEFAULT_SIM=%%N"
-    call :save_config
-    call :RESOLVE_SIM "%%N"
-    if not defined choice (
-        echo [!] Unexpected mapping error; returning to main menu...
-        timeout /t 2 >nul
-        goto MAIN_MENU
-    )
-    call :ADMIN_START
-    goto PREP_FLOW
-)
-echo Invalid selection. Press any key to try again...
-pause >nul
-goto SET_DEFAULT_SIM_AND_LAUNCH
 
 :CUSTOM_MENU
 cls
@@ -571,6 +656,16 @@ if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" (
     echo [%TIME%] [RESTORE] Edge restart triggered >> "%LOGFILE%"
 ) else (
     echo [%TIME%] [RESTORE] Edge not found, skipping >> "%LOGFILE%"
+)
+goto :eof
+
+:restart_chrome
+if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
+    echo Restoring Google Chrome...
+    start "" "C:\Program Files\Google\Chrome\Application\chrome.exe"
+    echo [%TIME%] [RESTORE] Chrome restart triggered >> "%LOGFILE%"
+) else (
+    echo [%TIME%] [RESTORE] Chrome not found, skipping >> "%LOGFILE%"
 )
 goto :eof
 
@@ -716,6 +811,7 @@ if not exist "%CFG%" (
 
 setlocal DisableDelayedExpansion
 for /f "usebackq tokens=1,* delims==" %%A in ("%CFG%") do (
+
     rem Skip comments and blank keys
     if not "%%A"=="" if not "%%A:~0,1%"=="#" if not "%%A:~0,1%"==";" if not "%%A:~0,1%"=="[" (
         endlocal & set "%%A=%%B"
@@ -723,6 +819,7 @@ for /f "usebackq tokens=1,* delims==" %%A in ("%CFG%") do (
     )
 )
 endlocal
+
 
 rem ---- Safety net defaults ----
 if not defined KILL_ONEDRIVE set "KILL_ONEDRIVE=YES"
@@ -737,6 +834,7 @@ if not defined RESTART_DISCORD set "RESTART_DISCORD=YES"
 if not defined RESTART_ONEDRIVE set "RESTART_ONEDRIVE=YES"
 if not defined RESTART_CCLEANER set "RESTART_CCLEANER=YES"
 if not defined RESTART_ICLOUD set "RESTART_ICLOUD=YES"
+if not defined KILL_CHROME set "KILL_CHROME=YES"
 if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
 if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
 if not defined DEFAULT_SIM set "DEFAULT_SIM="
@@ -757,6 +855,7 @@ set "RESTART_DISCORD=YES"
 set "RESTART_ONEDRIVE=YES"
 set "RESTART_CCLEANER=YES"
 set "RESTART_ICLOUD=YES"
+set "RESTART_CHROME=YES"
 
 set "CUST_K_COUNT=0"
 set "CUST_R_COUNT=0"
@@ -785,6 +884,7 @@ if not defined AUTO_RUN_ON_START set "AUTO_RUN_ON_START=NO"
 >> "%CFG%" echo RESTART_ONEDRIVE=%RESTART_ONEDRIVE%
 >> "%CFG%" echo RESTART_CCLEANER=%RESTART_CCLEANER%
 >> "%CFG%" echo RESTART_ICLOUD=%RESTART_ICLOUD%
+>> "%CFG%" echo RESTART_CHROME=%RESTART_CHROME%
 >> "%CFG%" echo DEFAULT_SIM=%DEFAULT_SIM%
 >> "%CFG%" echo AUTO_RUN_ON_START=%AUTO_RUN_ON_START%
 >> "%CFG%" echo CUST_K_COUNT=%CUST_K_COUNT%
