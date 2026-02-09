@@ -1,11 +1,7 @@
 #region HEADER & GLOBALS
 
 <#
-    VR-Optimizer.ps1
-    Modern PowerShell rewrite of the Universal SIM VR Optimizer
-    - Single-file application
-    - Terminal-style boxed UI (light borders)
-    - JSON configuration stored next to the script
+    Version 7.4.0
 #>
 
 Set-StrictMode -Version Latest
