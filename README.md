@@ -3,6 +3,7 @@
 ## Requires Powershell 7.5+
 [Download](https://github.com/powershell/powershell/releases)
 
+---
 A modern, single‑file PowerShell application that prepares your Windows system for VR flight simulation, launches your simulator with optimized CPU settings, and restores your system afterward.  
 Designed for **MSFS 2020/2024**, **DCS**, and **X‑Plane 12**.
 
@@ -13,13 +14,15 @@ Designed for **MSFS 2020/2024**, **DCS**, and **X‑Plane 12**.
 > Replace these image paths when I find the time to take screenshots... note for self
 
 ### Main Menu
-![Main Menu](screenshots/main-menu.png)
+<img width="573" height="256" alt="image" src="https://github.com/user-attachments/assets/4d139b6a-233c-406e-879e-0b2d0588aa55" />
+
 
 ### Simulator Selection
-![Simulator Selection](screenshots/sim-selection.png)
+<img width="569" height="331" alt="image" src="https://github.com/user-attachments/assets/04c3909d-e515-4e6f-889a-326371fc7418" />
+
 
 ### Configuration Menu
-![Configuration Menu](screenshots/config-menu.png)
+<img width="566" height="529" alt="image" src="https://github.com/user-attachments/assets/aee53b23-aeb2-43df-a006-b7bf5a2980c6" />
 
 ---
 
