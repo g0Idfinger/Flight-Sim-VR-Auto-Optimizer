@@ -215,6 +215,9 @@ if "%LAUNCH_METHOD%"=="DCS_STORE" (
     )
 
     rem --- 1) Drive scan (bin first, then bin-mt), all common layouts ---
+    if not defined DCS_BIN call :find_on_drives_pf "Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
+    if not defined DCS_BIN call :find_on_drives_pf "Program Files\Eagle Dynamics\DCS World\bin-mt\DCS.exe" DCS_BIN
+
     if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
     if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin-mt\DCS.exe" DCS_BIN
 
@@ -223,6 +226,9 @@ if "%LAUNCH_METHOD%"=="DCS_STORE" (
 
     if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World Open Beta\bin\DCS.exe" DCS_BIN
     if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World Open Beta\bin-mt\DCS.exe" DCS_BIN
+
+    if not defined DCS_BIN call :find_on_drives_pf "games\Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
+    if not defined DCS_BIN call :find_on_drives_pf "games\Eagle Dynamics\DCS World\bin-mt\DCS.exe" DCS_BIN
 
     rem --- 1b) Fallback to updater (bin first), all common layouts ---
     if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin\DCS_updater.exe" DCS_UPD
