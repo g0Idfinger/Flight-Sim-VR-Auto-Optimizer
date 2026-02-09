@@ -84,11 +84,10 @@ if "%choice%"=="1" (
 ) else if "%choice%"=="3" (
     set "STEAM_APPID=223750" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Steam)"
 ) else if "%choice%"=="5" (
-    set "LAUNCH_METHOD=STORE" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 Store"
-    for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "$p = Get-AppxPackage | Where-Object { ($_.Name -match 'Limitless' -or $_.Name -match 'MicrosoftFlightSimulator' -or $_.Name -match 'FlightSimulator') -and $_.Name -notmatch '2020' }; if($p){ $p.PackageFamilyName }" 2^>nul`) do set "STORE_URI=shell:AppsFolder\%%A^!App"
-    if "!STORE_URI!"=="" set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App -FastLaunch"
+    set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App"
+	"GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Store)"
 ) else if "%choice%"=="6" (
-    set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe^!App -FastLaunch"
+    set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe^!App"
     set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
 ) else if "%choice%"=="7" (
     set "LAUNCH_METHOD=DCS_STORE" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Standalone)"
@@ -102,7 +101,7 @@ if "%choice%"=="1" (
     set "VERSION_NAME=X-Plane 12 (Standalone)"
 	) else if "%choice%"=="10" (
     set "STEAM_APPID=2937600"
-    set "GAME_EXE=acs2.exe"
+    set "GAME_EXE=AssettoCorsaEVO.exe"
     set "VERSION_NAME=Assetto Corsa EVO (Steam)"
 ) else (
 ::    set "choice="
@@ -188,7 +187,7 @@ if "%LAUNCH_METHOD%"=="STEAM" (
 
 ) else if "%LAUNCH_METHOD%"=="STORE" (
     echo [%TIME%] [LAUNCH] Store-URI: !STORE_URI! >> "%LOGFILE%"
-    powershell -NoProfile -Command "explorer.exe $env:STORE_URI"
+    powershell -NoProfile -Command "Start-Process $env:STORE_URI -ArgumentList ' -FastLaunch'"
 
 ) else if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_BIN="
