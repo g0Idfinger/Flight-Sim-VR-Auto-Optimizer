@@ -244,7 +244,7 @@ if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
     set "AMS2_PATH="
 
     for %%D in (C D E F G H I J) do (
-        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2\AMS2AVX.exe" (
+        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2\ams2.exe" (
             set "AMS2_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2"
         )
     )
