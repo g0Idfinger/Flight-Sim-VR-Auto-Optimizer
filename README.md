@@ -1,172 +1,258 @@
+# VR Optimizer — PowerShell Edition
 
-# 📌 VR Auto‑Optimizer (Universal SIM VR Optimizer)
+## Requires Powershell 7.5+
+[Download](https://github.com/powershell/powershell/releases)
 
-A fully automated, configurable launcher designed to optimize Windows performance for **VR flight simulators** such as:
+---
+A modern, single‑file PowerShell application that prepares your Windows system for VR flight simulation, launches your simulator with optimized CPU settings, and restores your system afterward.  
+Designed for **MSFS 2020/2024**, **DCS**, and **X‑Plane 12**.
 
-- Microsoft Flight Simulator 2024 (Steam / Store)
-- Microsoft Flight Simulator 2020 (Steam / Store)
-- DCS World (Steam / Standalone)
+---
 
-The script automatically prepares your system before launching a sim, boosts performance, and restores normal operation when the sim exits. It includes a full menu‑driven UI, modular configuration system, and support for custom app kill/restart rules.
+## 📸 Screenshots
+
+> Replace these image paths when I find the time to take screenshots... note for self
+
+### Main Menu
+<img width="573" height="256" alt="image" src="https://github.com/user-attachments/assets/4d139b6a-233c-406e-879e-0b2d0588aa55" />
+
+
+### Simulator Selection
+<img width="569" height="331" alt="image" src="https://github.com/user-attachments/assets/04c3909d-e515-4e6f-889a-326371fc7418" />
+
+
+### Configuration Menu
+<img width="566" height="529" alt="image" src="https://github.com/user-attachments/assets/aee53b23-aeb2-43df-a006-b7bf5a2980c6" />
 
 ---
 
 ## ✨ Features
 
-### 🔧 System Optimization Before Launch
-- Switches to **High Performance** power profile
-- Kills background apps that may reduce VR performance (Discord, Chrome, OneDrive, etc.)
-- Supports **custom process kill list**
-- Stops optional Windows services (SysMain, Spooler)
-- Enables persistent GPU mode via `nvidia-smi`
-- Flushes DNS cache
-- Auto‑launches Virtual Desktop Streamer (if installed)
+### 🔧 System Optimization
+- Kills background apps (OneDrive, Edge, CCleaner, iCloud, etc.)
+- Stops unnecessary services (SysMain, Spooler)
+- Enables NVIDIA Persistence Mode
+- Flushes DNS
+- Launches Virtual Desktop Streamer (if installed)
 
-### 🛫 Smart Simulator Launcher
-- Launches Steam games via `steam://run`
-- Launches Microsoft Store apps via Appx URI detection
-- Launches DCS Standalone by scanning common install drives
-- Applies **High Priority** and **CPU Affinity Mask Optimization**
+### 🚀 Simulator Launching
+Supports:
+- **MSFS 2024 (Steam / Store)**
+- **MSFS 2020 (Steam / Store)**
+- **DCS World (Steam / Standalone)**
+- **X‑Plane 12 (Steam / Standalone)**
 
-### 🔄 System Restore on Exit
-- Restores normal power plan
-- Restarts previously killed apps (configurable)
-- Supports **custom restart commands**
-- Restarts system services
-- Shuts down Virtual Desktop Streamer
-- Logs everything
+Includes:
+- Steam launching via `steam://run/<appid>`
+- Store/GamePass launching via AppX URI resolution
+- Auto‑detection of standalone DCS & X‑Plane paths
+- Process detection + wait loop
+- CPU priority + affinity optimization
 
-### ⚙️ Full Configuration Menu
-- Toggle built‑in kill/restart rules
-- Add/remove custom kill processes
-- Add/remove custom restart commands
-- Persist settings in `vr_opt.cfg`
+### 🔄 System Restore
+After the simulator exits:
+- Restores services
+- Restores previous power plan
+- Disables NVIDIA persistence mode
+- Restarts apps (Edge, Discord, OneDrive, CCleaner, iCloud)
+- Restarts custom apps defined in config
 
----
+### ⚙️ Configuration
+- Clean `config.json` stored next to the script
+- Auto‑created on first run
+- Toggle kill/restart flags
+- Manage custom kill/restart lists
+- Set default simulator
+- Optional auto‑run on script start
 
-## 📁 Configuration File (`vr_opt.cfg`)
+### 🖥️ Modern Terminal UI
+- Light box‑drawing borders
+- Clean, centered headers
+- Color‑coded output
+- Intuitive menus
 
-The script auto‑creates and maintains a simple config file:
-
-```ini
-KILL_ONEDRIVE=YES
-KILL_DISCORD=NO
-KILL_CHROME=YES
-...
-
-CUST_K_COUNT=2
-CUST_K_1=obs64.exe
-CUST_K_2=RGBFusion.exe
-
-CUST_R_COUNT=1
-CUST_R_CMD_1="C:\Tools\Overlay\overlay.exe"
-CUST_R_ARGS_1=--minimized
-```
-
-### Built‑in KILL toggles (YES/NO)
-- `KILL_ONEDRIVE`
-- `KILL_DISCORD`
-- `KILL_CHROME`
-- `KILL_EDGE`
-- `KILL_CCLEANER`
-- `KILL_ICLOUDSERVICES`
-- `KILL_ICLOUDDRIVE`
-
-### Built‑in RESTART toggles
-- `RESTART_EDGE`
-- `RESTART_DISCORD`
-- `RESTART_ONEDRIVE`
-- `RESTART_CCLEANER`
-- `RESTART_ICLOUD`
-
-### Custom Kills
-Processes to terminate during prep.
-
-### Custom Restarts
-Commands to run after restore.
+### 📝 Logging
+- Full session logging to `sim_launcher.log`
+- Automatic log rotation (2MB)
+- Session start/end markers
 
 ---
 
-## 🧭 How to Use
+## 📂 File Structure
 
-### 1. Download the Script
-Place the `.bat` file anywhere.
-
-### 2. Run as Administrator
-The script auto‑elevates if needed.
-
-### 3. Choose a Simulator
-Menu options let you launch MSFS/DCS.
-
-### 4. Configure Behavior (Optional)
-Use:
 ```
-[2] Configure App Controls
+VR-Optimizer.ps1
+config.json              (auto-created)
+sim_launcher.log         (auto-created)
+sim_launcher.log.old     (auto-rotated)
 ```
-Make changes → Save → Written to `vr_opt.cfg`.
-
-### 5. Launch the Sim
-Script optimizes, launches, monitors, applies tweaks.
-
-### 6. Restore System
-After sim exit, everything is reversed.
 
 ---
 
-## 📜 Logging
-Logs saved to:
+## ▶️ Installation
+
+### 1. Download the script
+Place `VR-Optimizer.ps1` anywhere you like.
+
+
+### 2. Run the script
+Right‑click → **Run with PowerShell**  
+or:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\VR-Optimizer.ps1
+```
+
+### 3. First‑run setup
+The script will automatically:
+- Elevate to Administrator
+- Create `config.json`
+- Create/rotate logs
+- Initialize default settings
+
+---
+
+## ⚙️ Configuration File (`config.json`)
+
+Example structure:
+
+```
+{
+  "Kill": {
+    "OneDrive": true,
+    "Edge": true,
+    "CCleaner": true,
+    "iCloudServices": true,
+    "iCloudDrive": true,
+    "Custom": []
+  },
+  "Restart": {
+    "Edge": true,
+    "Discord": true,
+    "OneDrive": true,
+    "CCleaner": true,
+    "iCloud": true,
+    "Custom": []
+  },
+  "DefaultSim": null,
+  "AutoRunOnStart": false
+}
+```
+
+You can edit this manually or through the built‑in config menu.
+
+---
+
+## 🧭 Menu Overview
+
+### **Main Menu**
+```
+1) Launch Simulator
+2) Configure App Controls
+X) Exit
+```
+
+### **Simulator Selection**
+```
+1) MSFS 2024 (Steam)
+2) MSFS 2020 (Steam)
+3) DCS World (Steam)
+5) MSFS 2024 (Store/GamePass)
+6) MSFS 2020 (Store/GamePass)
+7) DCS Standalone
+8) X-Plane 12 (Steam)
+9) X-Plane 12 (Standalone)
+```
+
+### **Config Menu**
+- Toggle kill/restart flags  
+- Manage custom apps  
+- Set default simulator  
+- Enable/disable auto‑run  
+
+---
+
+## 🧠 How It Works (High‑Level Flow)
+
+1. **User selects a simulator**
+2. Script:
+   - Saves current power plan
+   - Switches to Ultimate Performance
+   - Runs System Prep
+   - Launches the simulator
+3. Script waits for the simulator to exit
+4. Script restores:
+   - Services
+   - Power plan
+   - NVIDIA persistence mode
+   - Restart apps
+5. Logs everything
+
+---
+
+## 🛠 Requirements
+
+- Windows 10/11  
+- PowerShell 5.1+  
+- Administrator privileges  
+- Steam (if using Steam sims)  
+- Microsoft Store (if using Store sims)  
+- NVIDIA GPU (for persistence mode)  
+
+---
+
+## 🧩 Troubleshooting
+
+### ❗ Script won’t run (Execution Policy)
+Run PowerShell as Administrator:
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+```
+
+---
+
+### ❗ Simulator doesn’t launch
+Check:
+- Steam is running (for Steam sims)
+- Microsoft Store version is installed (for Store sims)
+- Standalone DCS/X‑Plane paths exist
+
+---
+
+### ❗ CPU affinity not applied
+Some antivirus tools block process manipulation.  
+Add the script folder to your AV exclusions.
+
+---
+
+### ❗ Virtual Desktop Streamer doesn’t launch
+Ensure it exists at:
+
+```
+C:\Program Files\Virtual Desktop Streamer\VirtualDesktop.Streamer.exe
+```
+
+---
+
+### ❗ Power plan doesn’t switch
+Run:
+
+```powershell
+powercfg /list
+```
+
+Ensure **Ultimate Performance** exists.
+
+---
+
+### ❗ Log file missing
+The script auto‑creates:
+
 ```
 sim_launcher.log
 ```
-Includes:
-- Prep steps
-- Killed/restarted apps
-- Launch info
-- Restore info
-- Log rotation
+
+If it fails, check folder permissions.
 
 ---
-
-## 🧩 Customization Tips
-
-### Custom Kill Example
-```
-obs64.exe
-MSIAfterburner.exe
-RazerSynapse.exe
-```
-
-### Custom Restart Example
-```
-Command: "C:\Program Files\obs-studio\bin\64bit\obs64.exe"
-Args: --minimize-to-tray
-```
-
----
-
-## 🛠️ Requirements
-- Windows 10/11
-- Admin rights
-- Steam or Microsoft Store
-- NVIDIA GPU (optional, recommended)
-
----
-
-## 🚀 Why This Script Exists
-VR sims demand clean system conditions. This tool automates the whole prep/restore cycle so you can focus on flying—not on babysitting Windows.
-
----
-
-## 🤝 Contributions
-Pull requests welcome! Improvements, additional sim profiles, PowerShell ports, or optimizations are encouraged.
-
----
-## ⚠️ Disclaimer & Known Issues
-Please read before use:
--    Antivirus/Windows Defender: Some scanners might flag .bat scripts that use PowerShell commands as a "False Positive." This script is transparent—you can inspect every line of code in Notepad.
--    Custom Paths: If you installed DCS World or Virtual Desktop in a non-standard directory (outside of C:, D:, etc.), you might need to adjust the path variables in the CONFIG section of the script.
--    Experimental Feature: The CPU Affinity optimization works best on modern Intel (12th Gen+) and AMD Ryzen CPUs. If you experience unusual stuttering, you can disable the affinity block by putting a :: before the PowerShell command in the script.
-
----
-## 📄 License
-MIT License
