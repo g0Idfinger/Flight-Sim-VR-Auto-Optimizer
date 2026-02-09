@@ -1,17 +1,51 @@
-# VR Optimizer — PowerShell Edition
+# VR Optimizer
+## ✨ Features
 
-## Requires Powershell 7.5+
-[Download](https://github.com/powershell/powershell/releases)
+### 🔧 System Optimization
+- Kills background apps (OneDrive, Edge, CCleaner, iCloud, etc.)
+- Stops unnecessary services (SysMain, Spooler)
+- Enables NVIDIA Persistence Mode
+- Flushes DNS
+- Launches Virtual Desktop Streamer (if installed)
+
+### 🚀 Simulator Launching
+Supports:
+- **MSFS 2024 (Steam / Store)**
+- **MSFS 2020 (Steam / Store)**
+- **DCS World (Steam / Standalone)**
+- **X‑Plane 12 (Steam / Standalone)**
+
+Includes:
+- Steam launching via `steam://run/<appid>`
+- Store/GamePass launching via AppX URI resolution
+- Auto‑detection of standalone DCS & X‑Plane paths
+- Process detection + wait loop
+- CPU priority + affinity optimization
+
+### 🔄 System Restore
+After the simulator exits:
+- Restores services
+- Restores previous power plan
+- Disables NVIDIA persistence mode
+- Restarts apps (Edge, Discord, OneDrive, CCleaner, iCloud)
+- Restarts custom apps defined in config
+
 
 ---
+## 2 Versions
+### Powershell, more modern and quicker
+### Batch file, original, script is slower, but still optimizes the SIM. 
+
+<details>
+<summary>Powershell (requires Powershell 7.5+ (https://github.com/powershell/powershell/releases))</summary>
+
+---
+## Power Shell version
 A modern, single‑file PowerShell application that prepares your Windows system for VR flight simulation, launches your simulator with optimized CPU settings, and restores your system afterward.  
 Designed for **MSFS 2020/2024**, **DCS**, and **X‑Plane 12**.
 
 ---
-
 ## 📸 Screenshots
-
-
 ### Main Menu
 <img width="573" height="256" alt="image" src="https://github.com/user-attachments/assets/4d139b6a-233c-406e-879e-0b2d0588aa55" />
 
@@ -253,5 +287,185 @@ sim_launcher.log
 ```
 
 If it fails, check folder permissions.
+</details>
+---
+<details>
+<summary>Batch File</summary>
+
+## 📌 Overview
+The **Universal SIM VR Optimizer** is an advanced, fully configurable Windows batch automation tool designed to:
+
+- Prepare your system for maximum VR performance
+- Kill/unload background apps known to consume CPU, GPU, RAM, or network bandwidth
+- Launch your preferred simulator through Steam, Store/GamePass, or standalone paths
+- Apply CPU‑optimized affinity rules (Intel Hybrid, AMD/X3D‑aware)
+- Enable high‑performance power profiles automatically
+- Start and stop optional utilities (Virtual Desktop Streamer, NVIDIA settings, etc.)
+- Restore everything cleanly after your sim session concludes
+- Persist all configuration in an auto‑generated `vr_opt.cfg` file
+
+This tool is intended for power‑users who want one‑click optimization for VR simming, including:
+
+✔ MSFS 2024/2020
+✔ DCS (Steam + Standalone)
+✔ X‑Plane 12
+✔ Assetto Corsa EVO
+✔ Any sim you add manually
 
 ---
+
+## 🗂️ Files Included
+| File | Description |
+|------|-------------|
+| `Sim-VR-Optimizer_7.3.3.5.Beta.cmd` | Main automation script |
+| `vr_opt.cfg` | Auto‑generated configuration file (created after first run) |
+| `sim_launcher.log` | Rotating log containing all session actions |
+
+---
+
+## 🚀 Features
+### **1. Pre‑Launch Optimization**
+- Switch to **Ultimate Performance** power plan
+- Kill background apps (OneDrive, Chrome, Discord, Edge, iCloud, CCleaner, etc.)
+- Support for **custom KILL entries**
+- Stop services: `SysMain`, `Spooler`
+- Enable NVIDIA persistence mode
+- Flush DNS
+
+### **2. VR Launch Support**
+- Automatically starts **Virtual Desktop Streamer** if installed
+
+### **3. Simulator Launcher**
+Supports Steam, Store, GamePass, and standalone versions of:
+
+| ID | Simulator | Method |
+|----|-----------|--------|
+| 1 | MSFS 2024 | Steam |
+| 2 | MSFS 2020 | Steam |
+| 3 | DCS World | Steam |
+| 5 | MSFS 2024 | Store/GamePass |
+| 6 | MSFS 2020 | Store/GamePass |
+| 7 | DCS World | Standalone |
+| 8 | X‑Plane 12 | Steam |
+| 9 | X‑Plane 12 | Standalone |
+| 10 | Assetto Corsa EVO | Steam |
+
+### **4. CPU‑Aware Optimization**
+- Detects CPU vendor (Intel / AMD)
+- Detects hybrid P/E cores (Intel)
+- Detects AMD X3D cache‑heavy processors
+- Applies:
+  - Intel → P‑core affinity mask
+  - AMD X3D → scheduler‑safe, affinity disabled
+  - Others → High priority
+
+### **5. System Restore After Exit**
+- Restores power plan
+- Restarts services
+- Disables NVIDIA persistence mode
+- Restarts killed apps if configured
+- Executes custom restart commands
+- Logs session end
+
+---
+
+## 📋 Menu System
+### **Main Menu**
+```
+[1] Launch Simulator
+[2] Configure App Controls
+[X] Exit
+```
+
+### **Configuration Menu**
+Modify:
+- Kill flags
+- Restart flags
+- Default simulator
+- Auto‑run on start
+- Custom kill/restart lists
+
+---
+
+## 🛠️ Config File (`vr_opt.cfg`)
+The script automatically generates this file on first run.
+
+Contents include:
+- KILL flags
+- RESTART flags
+- Custom KILL/RESTART lists
+- Default simulator
+- Auto‑launch settings
+
+---
+
+## 💥 How to Run
+### **1. Requirements**
+- Windows 10/11
+- Admin privileges (script auto‑elevates)
+- Steam / Store apps for games
+- Optional: Virtual Desktop Streamer, NVIDIA GPU
+
+### **2. Usage**
+1. Place the `.cmd` file in any folder
+2. Run it (double‑click)
+3. On first launch, the config file is created
+4. Choose a simulator or set a default
+5. The system will:
+   - Prepare
+   - Launch VR (optional)
+   - Launch sim
+   - Wait for exit
+   - Restore system settings
+
+### **3. One‑Click Setup**
+```
+DEFAULT_SIM=1
+AUTO_RUN_ON_START=YES
+```
+
+---
+
+## 🧪 Customizations
+### **Add a custom KILL entry**
+```
+obs64.exe
+```
+
+### **Add a custom RESTART entry**
+```
+Command: "C:\Program Files\SomeApppp.exe"
+Args: --silent
+```
+
+---
+
+## 🧾 Logging
+Logs live in:
+```
+sim_launcher.log
+```
+Rotates automatically when:
+- It contains 10+ session headers
+- Size exceeds 2 MB
+
+---
+
+## ⚠️ Notes
+- Admin rights required
+- NVIDIA features skip automatically on non‑NVIDIA systems
+- Store‑based sim launching depends on correct Windows app registration
+
+---
+
+## 🎯 Summary
+The Universal SIM VR Optimizer provides:
+- One‑click VR sim launching
+- Fully automated system prep + restore
+- CPU‑intelligent optimization
+- Customizable kill/restart behavior
+- Multi‑sim support
+- Persistent config management
+</details>
+---
+## Ideal for enthusiasts seeking peak performance and a streamlined VR workflow.
