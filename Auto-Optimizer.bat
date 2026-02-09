@@ -194,15 +194,39 @@ if "%LAUNCH_METHOD%"=="STORE" (
     powershell -NoProfile -Command "Start-Process $env:STORE_URI -ArgumentList ' -FastLaunch'"
 )
 
+
 if "%LAUNCH_METHOD%"=="DCS_STORE" (
-    call :find_on_drives "Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
+    set "DCS_BIN="
+    rem --- 1) Check common Program Files locations first (fast path) ---
+    rem Use environment vars to handle 32/64-bit hosts cleanly.
+    rem %ProgramW6432% = C:\Program Files on 64-bit Windows (same as %ProgramFiles%)
+    rem %ProgramFiles% = C:\Program Files on 64-bit Windows; on 32-bit Windows it’s the only one
+    rem %ProgramFiles(x86)% exists only on 64-bit Windows
+
+    for %%P in (
+        "%ProgramFiles%\Eagle Dynamics\DCS World\bin\DCS.exe"
+        "%ProgramFiles(x86)%\Eagle Dynamics\DCS World\bin\DCS.exe"
+        "%ProgramW6432%\Eagle Dynamics\DCS World\bin\DCS.exe"
+        "C:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe"
+        "C:\Program Files (x86)\Eagle Dynamics\DCS World\bin\DCS.exe"
+    ) do (
+        if not defined DCS_BIN if exist "%%~P" (
+            set "DCS_BIN=%%~P"
+        )
+    )
+
+    rem --- 2) Fall back to your drive scan if not found in common locations ---
+    if not defined DCS_BIN call :find_on_drives "Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
     if not defined DCS_BIN call :find_on_drives "DCS World\bin\DCS.exe" DCS_BIN
+
+    rem --- 3) Launch if resolved ---
     if defined DCS_BIN (
         pushd "!DCS_BIN:\DCS.exe=!"
         start "" "DCS.exe"
         popd
     )
 )
+
 
 if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
     call :find_on_drives "X-Plane 12\X-Plane.exe" XPLANE_EXE
