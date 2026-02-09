@@ -2,16 +2,17 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.6.d)
-:: - Persistent configuration for which apps are killed/restored
-:: - DEFAULT_SIM + AUTO_RUN_ON_START
-:: - Config stored in vr_opt.cfg next to this script
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.7.d)
+:: Optimized
 :: ============================================================
 
 :: Paths & Files
 set "SCRIPT_DIR=%~dp0"
 set "LOGFILE=%SCRIPT_DIR%sim_launcher.log"
 set "CFG=%SCRIPT_DIR%vr_opt.cfg"
+
+:: ------------- ANSI init (once) -------------
+for /F %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
 
 :: -----------------------------
 :: Load (or create) configuration
@@ -37,22 +38,14 @@ if /i "!AUTO_RUN_ON_START!"=="YES" (
 :MAIN_MENU
 cls
 echo ============================================================
-rem Enable ANSI escape sequences in cmd.exe (captures the ESC character)
-for /F %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
-
-rem Colors:
-rem 36 = Cyan, 32 = Green, 33 = Yellow, 31 = Red, 0 = Reset
-
 echo %ESC%[36m        VR AUTO-OPTIMIZER - MAIN MENU%ESC%[0m
 echo ============================================================
 echo.
-
 echo %ESC%[32m[1] Launch Simulator (manual selection)%ESC%[0m
 echo %ESC%[33m[2] Configure App Controls%ESC%[0m
 echo.
 echo %ESC%[31m[X] Exit%ESC%[0m
 echo.
-
 
 set /p _main_choice="Selection: "
 if /i "%_main_choice%"=="1" goto MENU
@@ -83,6 +76,10 @@ if defined DEFAULT_SIM (
 :RESOLVE_SIM
 set "choice=%~1"
 set "LAUNCH_METHOD=STEAM"
+set "STEAM_APPID="
+set "STORE_URI="
+set "GAME_EXE="
+set "VERSION_NAME="
 
 if "%choice%"=="1" (
     set "STEAM_APPID=2537590" & set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Steam)"
@@ -91,59 +88,44 @@ if "%choice%"=="1" (
 ) else if "%choice%"=="3" (
     set "STEAM_APPID=223750" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Steam)"
 ) else if "%choice%"=="5" (
-   set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App"
+    set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.Limitless_8wekyb3d8bbwe^!App"
     set "GAME_EXE=FlightSimulator2024.exe" & set "VERSION_NAME=MSFS 2024 (Store)"
 ) else if "%choice%"=="6" (
     set "LAUNCH_METHOD=STORE" & set "STORE_URI=shell:AppsFolder\Microsoft.FlightSimulator_8wekyb3d8bbwe^!App"
     set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
 ) else if "%choice%"=="7" (
     set "LAUNCH_METHOD=DCS_STORE" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Standalone)"
-	) else if "%choice%"=="8" (
-    set "STEAM_APPID=2014780"
-    set "GAME_EXE=X-Plane.exe"
-    set "VERSION_NAME=X-Plane 12 (Steam)"
+) else if "%choice%"=="8" (
+    set "STEAM_APPID=2014780" & set "GAME_EXE=X-Plane.exe" & set "VERSION_NAME=X-Plane 12 (Steam)"
 ) else if "%choice%"=="9" (
-    set "LAUNCH_METHOD=XPLANE_STANDALONE"
-    set "GAME_EXE=X-Plane.exe"
-    set "VERSION_NAME=X-Plane 12 (Standalone)"
-)else if "%choice%"=="10" (
-    set "GAME_EXE=AssettoCorsaEVO.exe"
-    set "VERSION_NAME=Assetto Corsa EVO (VR)"
-    set "LAUNCH_METHOD=VR_ACE"  :: VR only
+    set "LAUNCH_METHOD=XPLANE_STANDALONE" & set "GAME_EXE=X-Plane.exe" & set "VERSION_NAME=X-Plane 12 (Standalone)"
+) else if "%choice%"=="10" (
+    set "GAME_EXE=AssettoCorsaEVO.exe" & set "VERSION_NAME=Assetto Corsa EVO (VR)" & set "LAUNCH_METHOD=VR_ACE"
 ) else if "%choice%"=="11" (
-    set "GAME_EXE=AssettoCorsaEVO.exe"
-    set "VERSION_NAME=Assetto Corsa EVO (2D)"
-    set "LAUNCH_METHOD=ACE_2D"  :: 2D only
+    set "GAME_EXE=AssettoCorsaEVO.exe" & set "VERSION_NAME=Assetto Corsa EVO (2D)" & set "LAUNCH_METHOD=ACE_2D"
 ) else if "%choice%"=="12" (
-    set "LAUNCH_METHOD=AMS2_OC"
-    set "VERSION_NAME=Automobilista 2 (VR - OpenComposite)"
+    set "LAUNCH_METHOD=AMS2_OC" & set "VERSION_NAME=Automobilista 2 (VR - OpenComposite)"
 ) else if "%choice%"=="13" (
-    set "LAUNCH_METHOD=AMS2_2D"
-    set "VERSION_NAME=Automobilista 2 (2D)"
-)else (
-::    set "choice="
-if not defined VERSION_NAME set "choice="
-
+    set "LAUNCH_METHOD=AMS2_2D" & set "VERSION_NAME=Automobilista 2 (2D)"
+) else (
+    if not defined VERSION_NAME set "choice="
 )
 goto :eof
 
 :: -----------------------------
-:: Original Simulator Menu (manual picker)
+:: Simulator Menu (manual picker)
 :: -----------------------------
 :MENU
 cls
 echo ============================================================
-for /F %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
 echo %ESC%[36m     VR AUTO-OPTIMIZER - SELECT YOUR SIMULATOR%ESC%[0m
 echo ============================================================
 echo.
-
 echo %ESC%[32m[1] MSFS 2024 (Steam)%ESC%[0m
 echo %ESC%[32m[2] MSFS 2020 (Steam)%ESC%[0m
 echo %ESC%[32m[3] DCS World (Steam)%ESC%[0m
 echo %ESC%[32m[8] X-Plane 12 (Steam)%ESC%[0m
 echo.
-
 echo %ESC%[33m[5] MSFS 2024 (Store / GamePass)%ESC%[0m
 echo %ESC%[33m[6] MSFS 2020 (Store / GamePass)%ESC%[0m
 echo %ESC%[33m[7] DCS World (Standalone)%ESC%[0m
@@ -153,13 +135,11 @@ echo %ESC%[33m[11] Assetto Corsa EVO (2D)%ESC%[0m
 echo %ESC%[32m[12] Automobilista 2 (VR - OpenComposite)%ESC%[0m
 echo %ESC%[33m[13] Automobilista 2 (2D)%ESC%[0m
 echo.
-
 echo %ESC%[37m[B] Back to Main Menu%ESC%[0m
 echo %ESC%[31m[X] Exit%ESC%[0m
 echo.
 
 set /p choice="Selection (1-13/B/X): "
-
 if /i "%choice%"=="X" exit /b
 if /i "%choice%"=="B" goto MAIN_MENU
 
@@ -207,8 +187,7 @@ if exist "C:\Program Files\Virtual Desktop Streamer\VirtualDesktop.Streamer.exe"
 :: [3/4] LAUNCH
 if "%LAUNCH_METHOD%"=="STEAM" (
     start "" "steam://run/%STEAM_APPID%"
-
-) 
+)
 
 if "%LAUNCH_METHOD%"=="STORE" (
     echo [%TIME%] [LAUNCH] Store-URI: !STORE_URI! >> "%LOGFILE%"
@@ -216,30 +195,19 @@ if "%LAUNCH_METHOD%"=="STORE" (
 )
 
 if "%LAUNCH_METHOD%"=="DCS_STORE" (
-    set "DCS_BIN="
-    for %%D in (C D E F G H I J) do (
-        if exist "%%D:\Eagle Dynamics\DCS World\bin\DCS.exe" set "DCS_BIN=%%D:\Eagle Dynamics\DCS World\bin\DCS.exe"
-        if exist "%%D:\DCS World\bin\DCS.exe" set "DCS_BIN=%%D:\DCS World\bin\DCS.exe"
-    )
+    call :find_on_drives "Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
+    if not defined DCS_BIN call :find_on_drives "DCS World\bin\DCS.exe" DCS_BIN
     if defined DCS_BIN (
         pushd "!DCS_BIN:\DCS.exe=!"
         start "" "DCS.exe"
         popd
     )
-
 )
 
 if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
-    set "XPLANE_PATH="
-    for %%D in (C D E F G H I J) do (
-        if exist "%%D:\X-Plane 12\X-Plane.exe" (
-            set "XPLANE_PATH=%%D:\X-Plane 12"
-            goto XP_FOUND
-        )
-    )
-    :XP_FOUND
-    if defined XPLANE_PATH (
-        pushd "!XPLANE_PATH!"
+    call :find_on_drives "X-Plane 12\X-Plane.exe" XPLANE_EXE
+    if defined XPLANE_EXE (
+        pushd "!XPLANE_EXE:\X-Plane.exe=!"
         start "" "X-Plane.exe"
         popd
     ) else (
@@ -248,19 +216,14 @@ if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
         timeout /t 3 >nul
         goto RESTORE
     )
-	)
-	if "%LAUNCH_METHOD%"=="AMS2_OC" (
+)
+
+if "%LAUNCH_METHOD%"=="AMS2_OC" (
     echo [%TIME%] [LAUNCH] Starting Automobilista 2 VR >> "%LOGFILE%"
-    set "AMS2_PATH="
-
-    for %%D in (C D E F G H I J) do (
-        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2\ams2.exe" (
-            set "AMS2_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2"
-        )
-    )
-
-    if defined AMS2_PATH (
-        pushd "!AMS2_PATH!"
+    call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Automobilista 2\AMS2AVX.exe" AMS2_EXE
+    if not defined AMS2_EXE call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Automobilista 2\ams2.exe" AMS2_EXE
+    if defined AMS2_EXE (
+        pushd "!AMS2_EXE:\AMS2AVX.exe=!"
         start "" "AMS2AVX.exe" -vr -openvr
         popd
     ) else (
@@ -272,16 +235,9 @@ if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
 
 if "%LAUNCH_METHOD%"=="AMS2_2D" (
     echo [%TIME%] [LAUNCH] Starting Automobilista 2 2D >> "%LOGFILE%"
-    set "AMS2_PATH="
-
-    for %%D in (C D E F G H I J) do (
-        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2\AssettoCorsaEVO.exe" (
-            set "AMS2_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Automobilista 2"
-        )
-    )
-
-    if defined AMS2_PATH (
-        pushd "!AMS2_PATH!"
+    call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Automobilista 2\AMS2.exe" AMS2_EXE
+    if defined AMS2_EXE (
+        pushd "!AMS2_EXE:\AMS2.exe=!"
         start "" "AMS2.exe"
         popd
     ) else (
@@ -296,18 +252,10 @@ if "%LAUNCH_METHOD%"=="VR_ACE" (
         echo [%TIME%] [ERROR] GAME_EXE not defined >> "%LOGFILE%"
         goto RESTORE
     )
-
-    set "ACE_PATH="
-
-    for %%D in (C D E F G H I J) do (
-        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\%GAME_EXE%" (
-            set "ACE_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO"
-        )
-    )
-
-    if defined ACE_PATH (
+    call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\%GAME_EXE%" ACE_EXE
+    if defined ACE_EXE (
         echo [%TIME%] [LAUNCH] Starting Assetto Corsa EVO VR >> "%LOGFILE%"
-        start "" "%ACE_PATH%\%GAME_EXE%" -vr -openxr
+        start "" "!ACE_EXE!" -vr -openxr
     ) else (
         echo [%TIME%] [ERROR] Assetto Corsa EVO not found >> "%LOGFILE%"
         timeout /t 3 >nul
@@ -317,18 +265,10 @@ if "%LAUNCH_METHOD%"=="VR_ACE" (
 
 if "%LAUNCH_METHOD%"=="ACE_2D" (
     if not defined GAME_EXE goto RESTORE
-
-    set "ACE_PATH="
-
-    for %%D in (C D E F G H I J) do (
-        if exist "%%D:\Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\%GAME_EXE%" (
-            set "ACE_PATH=%%D:\Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO"
-        )
-    )
-
-    if defined ACE_PATH (
+    call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\%GAME_EXE%" ACE_EXE
+    if defined ACE_EXE (
         echo [%TIME%] [LAUNCH] Starting Assetto Corsa EVO 2D >> "%LOGFILE%"
-        start "" "%ACE_PATH%\%GAME_EXE%"
+        start "" "!ACE_EXE!"
     ) else (
         echo [%TIME%] [ERROR] Assetto Corsa EVO not found >> "%LOGFILE%"
         timeout /t 3 >nul
@@ -336,12 +276,10 @@ if "%LAUNCH_METHOD%"=="ACE_2D" (
     )
 )
 
-
 :: DETECTION
 set /a retry_count=0
 :WAIT_GAME
 set "ACTIVE_EXE="
-::for %%E in ("%GAME_EXE%" "DCS_mt.exe" "DCS.exe" "FlightSimulator.exe" "GameLauncher.exe") do (
 for %%E in (
  "%GAME_EXE%"
  "FlightSimulator2024.exe"
@@ -361,7 +299,7 @@ if defined ACTIVE_EXE (
     goto GAME_DETECTED
 )
 set /a retry_count+=1
-echo [!] Waiting... (!retry_count!/7)
+echo [^^!] Waiting... (!retry_count!/7)
 if !retry_count! GEQ 7 (
     echo [%TIME%] [TIMEOUT] Game not found >> "%LOGFILE%"
     goto RESTORE
@@ -415,23 +353,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 
 echo ============================================================
 echo %VERSION_NAME% RUNNING - DO NOT CLOSE THIS WINDOW
+
 setlocal DisableDelayedExpansion
-
-rem Capture the ANSI ESC character into %ESC%
-for /F %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
-
-rem Foreground/Background color codes:
-rem 33=Yellow, 31=Red, 34=Blue, 47=White background, 41=Red background, 43=Yellow background, 0=Reset
-
-rem Print everything on ONE line (PowerShell -NoNewline equivalent uses <nul set /p)
 <nul set /p "=%ESC%[0mEnjoy your flight! Greetings from "
 <nul set /p "=%ESC%[33;41m VRFLIGHTSIM GUY %ESC%[0m"
 <nul set /p "=%ESC%[0m , "
 <nul set /p "=%ESC%[34;47m SHARK %ESC%[0m"
 <nul set /p "=%ESC%[0m and, "
-echo %ESC%[31;43m g0^|df^^!ng3R %ESC%[0m
-
+echo %ESC%[31;43m g0^|df^!ng3R %ESC%[0m
 endlocal
+
 echo ============================================================
 
 :WAIT_EXIT
@@ -440,30 +371,22 @@ tasklist /NH /FI "IMAGENAME eq %GAME_EXE%" | find /i "%GAME_EXE%" >nul
 if not errorlevel 1 goto WAIT_EXIT
 echo [%TIME%] [DETECT] %GAME_EXE% exited >> "%LOGFILE%"
 goto RESTORE
+
 :: -----------------------------
-:: Ensure Ultimate Performance power plan is active
-:: - If present: activate built-in GUID
-:: - If absent:  install (duplicatescheme), capture new GUID, activate
-:: - On failure: fall back to High performance
+:: Ensure Ultimate Performance power plan
 :: -----------------------------
 :ensure_ultimate
 setlocal EnableDelayedExpansion
 set "ULT_BUILTIN=e9a42b02-d5df-448d-aa00-03f14749eb61"
 set "ULT_GUID="
 
-
-rem Check if the built-in Ultimate plan exists already
 powercfg /list | findstr /I "%ULT_BUILTIN%" >nul
 if not errorlevel 1 (
     set "ULT_GUID=%ULT_BUILTIN%"
 ) else (
-
-    rem Try to create Ultimate by duplicating the built-in scheme; parse returned GUID
     for /f "tokens=3 delims=:()" %%G in ('
         powercfg -duplicatescheme %ULT_BUILTIN% 2^>nul ^| findstr /I "GUID"
-    ') do (
-        set "ULT_GUID=%%G"
-    )
+    ') do set "ULT_GUID=%%G"
 )
 
 if defined ULT_GUID (
@@ -474,8 +397,6 @@ if defined ULT_GUID (
     )
 )
 
-
-rem If we got here, the Ultimate activation failed—fallback to High performance
 echo [%TIME%] [PREP] Ultimate unavailable/failed; falling back to High Performance>>"%LOGFILE%"
 powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
 endlocal & goto :eof
@@ -718,7 +639,7 @@ if exist "C:\Program Files\WindowsApps\AppleInc.iCloud_*" (
     start explorer.exe shell:AppsFolder\AppleInc.iCloud_skh98v6769f6t^!iCloud
 ) else if exist "C:\Program Files (x86)\Common Files\Apple\Internet Services\iCloud.exe" (
     echo Restoring iCloud (Desktop Version)...
-    start "" "C:\Program Files\x86\Common Files\Apple\Internet Services\iCloud.exe"
+    start "" "C:\Program Files (x86)\Common Files\Apple\Internet Services\iCloud.exe"
 )
 goto :eof
 
@@ -800,10 +721,15 @@ goto :eof
 :ADMIN_START
 if exist "%LOGFILE%" (
     set "count=0"
-    for /f "usebackq" %%A in (`find /c /i "[SESSION START]" "%LOGFILE%"`) do set "count=%%A"
+    for /f %%A in ('type "%LOGFILE%" ^| find /c /i "[SESSION START]"') do set "count=%%A"
     for %%I in ("%LOGFILE%") do set "fsize=%%~zI"
-    if !count! GEQ 10 ( move /y "%LOGFILE%" "%LOGFILE%.old" >nul & echo [%DATE% %TIME%] [LOG] Rotation triggered >> "%LOGFILE%" )
-    if !fsize! GTR 2097152 ( move /y "%LOGFILE%" "%LOGFILE%.old" >nul )
+    if !count! GEQ 10 (
+        move /y "%LOGFILE%" "%LOGFILE%.old" >nul
+        echo [%DATE% %TIME%] [LOG] Rotation triggered >> "%LOGFILE%"
+    )
+    if !fsize! GTR 2097152 (
+        move /y "%LOGFILE%" "%LOGFILE%.old" >nul
+    )
 )
 echo ============================================================ >> "%LOGFILE%"
 echo [%DATE% %TIME%] [SESSION START] Target: %VERSION_NAME% >> "%LOGFILE%"
@@ -825,15 +751,12 @@ if not exist "%CFG%" (
 
 setlocal DisableDelayedExpansion
 for /f "usebackq tokens=1,* delims==" %%A in ("%CFG%") do (
-
-    rem Skip comments and blank keys
     if not "%%A"=="" if not "%%A:~0,1%"=="#" if not "%%A:~0,1%"==";" if not "%%A:~0,1%"=="[" (
         endlocal & set "%%A=%%B"
         setlocal DisableDelayedExpansion
     )
 )
 endlocal
-
 
 rem ---- Safety net defaults ----
 if not defined KILL_ONEDRIVE set "KILL_ONEDRIVE=YES"
@@ -848,7 +771,7 @@ if not defined RESTART_DISCORD set "RESTART_DISCORD=YES"
 if not defined RESTART_ONEDRIVE set "RESTART_ONEDRIVE=YES"
 if not defined RESTART_CCLEANER set "RESTART_CCLEANER=YES"
 if not defined RESTART_ICLOUD set "RESTART_ICLOUD=YES"
-if not defined KILL_CHROME set "KILL_CHROME=YES"
+if not defined RESTART_CHROME set "RESTART_CHROME=YES"
 if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
 if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
 if not defined DEFAULT_SIM set "DEFAULT_SIM="
@@ -883,7 +806,6 @@ if not defined CUST_K_COUNT set "CUST_K_COUNT=0"
 if not defined CUST_R_COUNT set "CUST_R_COUNT=0"
 if not defined AUTO_RUN_ON_START set "AUTO_RUN_ON_START=NO"
 
-:: Write fixed keys line-by-line (no parentheses block)
 >  "%CFG%" echo # VR Optimizer Config - auto-generated
 >> "%CFG%" echo # Toggle YES/NO; custom entries are indexed.
 >> "%CFG%" echo KILL_ONEDRIVE=%KILL_ONEDRIVE%
@@ -911,4 +833,24 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
   >> "%CFG%" echo CUST_R_ARGS_%%I=!CUST_R_ARGS_%%I!
 )
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
+goto :eof
+
+:: -----------------------------
+:: Generic helper: find file on drives C..J
+::   %~1 = relative path from drive root (e.g., "X-Plane 12\X-Plane.exe")
+::   %~2 = OUT var name to receive full path (drive:\relative\file)
+:: -----------------------------
+:find_on_drives
+setlocal
+set "rel=%~1"
+set "outvar=%~2"
+set "found="
+for %%D in (C D E F G H I J) do (
+    if exist "%%D:\%rel%" (
+        set "found=%%D:\%rel%"
+        goto :_done
+    )
+)
+:_done
+endlocal & if defined found set "%outvar%=%found%"
 goto :eof
