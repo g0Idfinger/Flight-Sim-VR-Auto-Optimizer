@@ -200,12 +200,6 @@ if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_UPD="
     set "DEBUG_DCS=1"
 
-    rem --- -1) Your exact known path (bin first) ---
-    if not defined DCS_BIN if exist "E:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" (
-        set "DCS_BIN=E:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe"
-        echo [%TIME%] [DCS_HINT] Short-circuit to known path: !DCS_BIN!>>"%LOGFILE%"
-    )
-
     rem --- 0) Registry probe for the install root (bin first) ---
     if not defined DCS_BIN (
         call :dcs_from_registry DCS_ROOT
