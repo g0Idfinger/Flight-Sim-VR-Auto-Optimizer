@@ -1,4 +1,7 @@
 # VR Optimizer
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/ea1a9b21-7d66-4492-aa42-0af1491bb8b7" />
+
+
 ## ✨ Features
 
 ### 🔧 System Optimization
