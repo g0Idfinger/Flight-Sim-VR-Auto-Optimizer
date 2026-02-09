@@ -197,33 +197,56 @@ if "%LAUNCH_METHOD%"=="STORE" (
 
 if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_BIN="
-    rem --- 1) Check common Program Files locations first (fast path) ---
-    rem Use environment vars to handle 32/64-bit hosts cleanly.
-    rem %ProgramW6432% = C:\Program Files on 64-bit Windows (same as %ProgramFiles%)
-    rem %ProgramFiles% = C:\Program Files on 64-bit Windows; on 32-bit Windows it’s the only one
-    rem %ProgramFiles(x86)% exists only on 64-bit Windows
+    set "DCS_UPD="
+    set "DEBUG_DCS=1"
 
-    for %%P in (
-        "%ProgramFiles%\Eagle Dynamics\DCS World\bin\DCS.exe"
-        "%ProgramFiles(x86)%\Eagle Dynamics\DCS World\bin\DCS.exe"
-        "%ProgramW6432%\Eagle Dynamics\DCS World\bin\DCS.exe"
-        "C:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe"
-        "C:\Program Files (x86)\Eagle Dynamics\DCS World\bin\DCS.exe"
-    ) do (
-        if not defined DCS_BIN if exist "%%~P" (
-            set "DCS_BIN=%%~P"
+    rem --- -1) Your exact known path (bin first) ---
+    if not defined DCS_BIN if exist "E:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" (
+        set "DCS_BIN=E:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe"
+        echo [%TIME%] [DCS_HINT] Short-circuit to known path: !DCS_BIN!>>"%LOGFILE%"
+    )
+
+    rem --- 0) Registry probe for the install root (bin first) ---
+    if not defined DCS_BIN (
+        call :dcs_from_registry DCS_ROOT
+        if defined DCS_ROOT (
+            if exist "!DCS_ROOT!\bin\DCS.exe" set "DCS_BIN=!DCS_ROOT!\bin\DCS.exe"
+            if not defined DCS_BIN if exist "!DCS_ROOT!\bin\DCS_updater.exe" set "DCS_UPD=!DCS_ROOT!\bin\DCS_updater.exe"
+            if not defined DCS_BIN if exist "!DCS_ROOT!\bin-mt\DCS.exe" set "DCS_BIN=!DCS_ROOT!\bin-mt\DCS.exe"
+            if defined DCS_BIN echo [%TIME%] [DCS_REG] Root=!DCS_ROOT! Bin=!DCS_BIN!>>"%LOGFILE%"
+            if not defined DCS_BIN if defined DCS_UPD echo [%TIME%] [DCS_REG] Root=!DCS_ROOT! Upd=!DCS_UPD!>>"%LOGFILE%"
+        ) else (
+            echo [%TIME%] [DCS_REG] No registry root found>>"%LOGFILE%"
         )
     )
 
-    rem --- 2) Fall back to your drive scan if not found in common locations ---
-    if not defined DCS_BIN call :find_on_drives "Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
-    if not defined DCS_BIN call :find_on_drives "DCS World\bin\DCS.exe" DCS_BIN
+    rem --- 1) Drive scan (bin first, then bin-mt), all common layouts ---
+    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
+    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin-mt\DCS.exe" DCS_BIN
 
-    rem --- 3) Launch if resolved ---
+    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World OpenBeta\bin\DCS.exe" DCS_BIN
+    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World OpenBeta\bin-mt\DCS.exe" DCS_BIN
+
+    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World Open Beta\bin\DCS.exe" DCS_BIN
+    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World Open Beta\bin-mt\DCS.exe" DCS_BIN
+
+    rem --- 1b) Fallback to updater (bin first), all common layouts ---
+    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin\DCS_updater.exe" DCS_UPD
+    if not defined DCS_UPD call :find_on_drives_pf "Eagle Dynamics\DCS World OpenBeta\bin\DCS_updater.exe" DCS_UPD
+    if not defined DCS_UPD call :find_on_drives_pf "Eagle Dynamics\DCS World Open Beta\bin\DCS_updater.exe" DCS_UPD
+
+    rem --- 2) Launch using the full path (no pushd/popd) ---
     if defined DCS_BIN (
-        pushd "!DCS_BIN:\DCS.exe=!"
-        start "" "DCS.exe"
-        popd
+        echo [%TIME%] [LAUNCH] DCS path: !DCS_BIN!>>"%LOGFILE%"
+        start "" "!DCS_BIN!"
+    ) else if defined DCS_UPD (
+        echo [%TIME%] [LAUNCH] DCS via updater: !DCS_UPD!>>"%LOGFILE%"
+        start "" "!DCS_UPD!"
+    ) else (
+        echo [%TIME%] [ERROR] DCS Standalone not found>>"%LOGFILE%"
+        echo DCS Standalone not found!
+        timeout /t 3 >nul
+        goto RESTORE
     )
 )
 
@@ -859,22 +882,58 @@ for /l %%I in (1,1,%CUST_R_COUNT%) do (
 echo [%TIME%] [CFG] Saved to "%CFG%" >> "%LOGFILE%"
 goto :eof
 
+
 :: -----------------------------
-:: Generic helper: find file on drives C..J
-::   %~1 = relative path from drive root (e.g., "X-Plane 12\X-Plane.exe")
-::   %~2 = OUT var name to receive full path (drive:\relative\file)
+:: Helper: Find a file across drives in common roots
+::   %~1 = relative path AFTER the root (e.g., "Eagle Dynamics\DCS World\bin\DCS.exe")
+::   %~2 = OUT var to receive full path
+:: Tries:
+::   <D>:\%1
+::   <D>:\Program Files\%1
+::   <D>:\Program Files (x86)\%1
 :: -----------------------------
-:find_on_drives
+:find_on_drives_pf
 setlocal
 set "rel=%~1"
 set "outvar=%~2"
 set "found="
 for %%D in (C D E F G H I J) do (
-    if exist "%%D:\%rel%" (
-        set "found=%%D:\%rel%"
-        goto :_done
+  for %%P in (
+    "%%D:\%rel%"
+    "%%D:\Program Files\%rel%"
+    "%%D:\Program Files (x86)\%rel%"
+  ) do (
+    if defined DEBUG_DCS echo [%TIME%] [DCS_SCAN] Try: %%~P >> "%LOGFILE%"
+    if exist "%%~P" (
+      set "found=%%~P"
+      goto :_done_pf
     )
+  )
 )
-:_done
+:_done_pf
 endlocal & if defined found set "%outvar%=%found%"
+goto :eof
+
+:: -----------------------------
+:: DCS root from registry (fast path)
+::   %~1 = OUT var to receive the install folder (e.g., E:\Program Files\Eagle Dynamics\DCS World)
+:: Checks HKLM + HKCU for DCS World and DCS World OpenBeta.
+:: -----------------------------
+:dcs_from_registry
+setlocal
+set "outvar=%~1"
+set "root="
+for %%K in (
+  "HKLM\SOFTWARE\Eagle Dynamics\DCS World"
+  "HKLM\SOFTWARE\Eagle Dynamics\DCS World OpenBeta"
+  "HKCU\SOFTWARE\Eagle Dynamics\DCS World"
+  "HKCU\SOFTWARE\Eagle Dynamics\DCS World OpenBeta"
+) do (
+  for /f "tokens=2,*" %%A in ('reg query %%K /v Path 2^>nul ^| find /i "Path"') do (
+     set "root=%%B"
+     goto :_found_root
+  )
+)
+:_found_root
+endlocal & if defined root set "%outvar%=%root%"
 goto :eof
