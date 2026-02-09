@@ -37,15 +37,22 @@ if /i "!AUTO_RUN_ON_START!"=="YES" (
 :MAIN_MENU
 cls
 echo ============================================================
-powershell -NoProfile -Command "Write-Host '        VR AUTO-OPTIMIZER - MAIN MENU' -ForegroundColor Cyan"
+rem Enable ANSI escape sequences in cmd.exe (captures the ESC character)
+for /F %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
+
+rem Colors:
+rem 36 = Cyan, 32 = Green, 33 = Yellow, 31 = Red, 0 = Reset
+
+echo %ESC%[36m        VR AUTO-OPTIMIZER - MAIN MENU%ESC%[0m
 echo ============================================================
 echo.
 
-powershell -NoProfile -Command "Write-Host '[1] Launch Simulator (manual selection)' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '[2] Configure App Controls' -ForegroundColor Yellow"
+echo %ESC%[32m[1] Launch Simulator (manual selection)%ESC%[0m
+echo %ESC%[33m[2] Configure App Controls%ESC%[0m
 echo.
-powershell -NoProfile -Command "Write-Host '[X] Exit' -ForegroundColor Red"
+echo %ESC%[31m[X] Exit%ESC%[0m
 echo.
+
 
 set /p _main_choice="Selection: "
 if /i "%_main_choice%"=="1" goto MENU
@@ -126,26 +133,29 @@ goto :eof
 :MENU
 cls
 echo ============================================================
-powershell -NoProfile -Command "Write-Host '     VR AUTO-OPTIMIZER - SELECT YOUR SIMULATOR' -ForegroundColor Cyan"
+for /F %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
+echo %ESC%[36m     VR AUTO-OPTIMIZER - SELECT YOUR SIMULATOR%ESC%[0m
 echo ============================================================
 echo.
 
-powershell -NoProfile -Command "Write-Host '[1] MSFS 2024 (Steam)' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '[2] MSFS 2020 (Steam)' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '[3] DCS World (Steam)' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '[8] X-Plane 12 (Steam)' -ForegroundColor Green"
+echo %ESC%[32m[1] MSFS 2024 (Steam)%ESC%[0m
+echo %ESC%[32m[2] MSFS 2020 (Steam)%ESC%[0m
+echo %ESC%[32m[3] DCS World (Steam)%ESC%[0m
+echo %ESC%[32m[8] X-Plane 12 (Steam)%ESC%[0m
 echo.
-powershell -NoProfile -Command "Write-Host '[5] MSFS 2024 (Store / GamePass)' -ForegroundColor Yellow"
-powershell -NoProfile -Command "Write-Host '[6] MSFS 2020 (Store / GamePass)' -ForegroundColor Yellow"
-powershell -NoProfile -Command "Write-Host '[7] DCS World (Standalone)' -ForegroundColor Yellow"
-powershell -NoProfile -Command "Write-Host '[9] X-Plane 12 (Standalone)' -ForegroundColor Yellow"
-powershell -NoProfile -Command "Write-Host '[10] Assetto Corsa EVO (VR OpenXR)' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '[11] Assetto Corsa EVO (2D)' -ForegroundColor Yellow"
-powershell -NoProfile -Command "Write-Host '[12] Automobilista 2 (VR - OpenComposite)' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '[13] Automobilista 2 (2D)' -ForegroundColor Yellow"
+
+echo %ESC%[33m[5] MSFS 2024 (Store / GamePass)%ESC%[0m
+echo %ESC%[33m[6] MSFS 2020 (Store / GamePass)%ESC%[0m
+echo %ESC%[33m[7] DCS World (Standalone)%ESC%[0m
+echo %ESC%[33m[9] X-Plane 12 (Standalone)%ESC%[0m
+echo %ESC%[32m[10] Assetto Corsa EVO (VR OpenXR)%ESC%[0m
+echo %ESC%[33m[11] Assetto Corsa EVO (2D)%ESC%[0m
+echo %ESC%[32m[12] Automobilista 2 (VR - OpenComposite)%ESC%[0m
+echo %ESC%[33m[13] Automobilista 2 (2D)%ESC%[0m
 echo.
-powershell -NoProfile -Command "Write-Host '[B] Back to Main Menu' -ForegroundColor White"
-powershell -NoProfile -Command "Write-Host '[X] Exit' -ForegroundColor Red"
+
+echo %ESC%[37m[B] Back to Main Menu%ESC%[0m
+echo %ESC%[31m[X] Exit%ESC%[0m
 echo.
 
 set /p choice="Selection (1-13/B/X): "
@@ -406,13 +416,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 echo ============================================================
 echo %VERSION_NAME% RUNNING - DO NOT CLOSE THIS WINDOW
 setlocal DisableDelayedExpansion
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "Write-Host 'Enjoy your flight! Greetings from ' -NoNewline; " ^
-  "Write-Host ' VRFLIGHTSIM GUY ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline; " ^
-  "Write-Host ' and ' -NoNewline; " ^
-  "Write-Host ' SHARK ' -ForegroundColor Blue -BackgroundColor White -NoNewline; " ^
-  "Write-Host ' and ' -NoNewline; " ^
-  "Write-Host ' g0|df!ng3R ' -ForegroundColor Red -BackgroundColor Yellow;"
+
+rem Capture the ANSI ESC character into %ESC%
+for /F %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
+
+rem Foreground/Background color codes:
+rem 33=Yellow, 31=Red, 34=Blue, 47=White background, 41=Red background, 43=Yellow background, 0=Reset
+
+rem Print everything on ONE line (PowerShell -NoNewline equivalent uses <nul set /p)
+<nul set /p "=%ESC%[0mEnjoy your flight! Greetings from "
+<nul set /p "=%ESC%[33;41m VRFLIGHTSIM GUY %ESC%[0m"
+<nul set /p "=%ESC%[0m , "
+<nul set /p "=%ESC%[34;47m SHARK %ESC%[0m"
+<nul set /p "=%ESC%[0m and, "
+echo %ESC%[31;43m g0^|df^^!ng3R %ESC%[0m
+
 endlocal
 echo ============================================================
 
@@ -504,11 +522,10 @@ goto MAIN_MENU
 :CONFIG_MENU
 cls
 echo ============================================================
-powershell -NoProfile -Command "Write-Host '        CONFIGURATION - APP CONTROLS' -ForegroundColor Cyan"
+echo %ESC%[36m        CONFIGURATION - APP CONTROLS%ESC%[0m
 echo ============================================================
 echo.
-
-powershell -NoProfile -Command "Write-Host 'KILL FLAGS:' -ForegroundColor Yellow"
+echo %ESC%[33mKILL FLAGS:%ESC%[0m
 echo  [1] OneDrive        = !KILL_ONEDRIVE!
 echo  [2] Discord         = !KILL_DISCORD!
 echo  [3] Chrome          = !KILL_CHROME!
@@ -517,8 +534,7 @@ echo  [5] CCleaner        = !KILL_CCLEANER!
 echo  [6] iCloudServices  = !KILL_ICLOUDSERVICES!
 echo  [7] iCloudDrive     = !KILL_ICLOUDDRIVE!
 echo.
-
-powershell -NoProfile -Command "Write-Host 'RESTART FLAGS:' -ForegroundColor Green"
+echo %ESC%[32mRESTART FLAGS:%ESC%[0m
 echo  [8]  Restart Edge     = !RESTART_EDGE!
 echo  [9]  Restart Discord  = !RESTART_DISCORD!
 echo  [10] Restart OneDrive = !RESTART_ONEDRIVE!
@@ -526,15 +542,13 @@ echo  [11] Restart CCleaner = !RESTART_CCLEANER!
 echo  [12] Restart iCloud   = !RESTART_ICLOUD!
 echo  [13] Restart Chrome   = !RESTART_CHROME!
 echo.
-
-powershell -NoProfile -Command "Write-Host 'DEFAULTS:' -ForegroundColor Cyan"
+echo %ESC%[36mDEFAULTS:%ESC%[0m
 echo  [D] Set default sim (current: !DEFAULT_SIM!)
 echo  [A] Toggle auto-run on start (AUTO_RUN_ON_START = !AUTO_RUN_ON_START!)
 echo.
-
-powershell -NoProfile -Command "Write-Host '[C] Manage custom apps' -ForegroundColor Yellow"
-powershell -NoProfile -Command "Write-Host '[S] Save and return' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '[B] Back without saving' -ForegroundColor White"
+echo %ESC%[33m[C] Manage custom apps%ESC%[0m
+echo %ESC%[32m[S] Save and return%ESC%[0m
+echo %ESC%[37m[B] Back without saving%ESC%[0m
 echo.
 
 set /p _cfg_choice="Selection: "
