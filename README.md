@@ -11,7 +11,6 @@ Designed for **MSFS 2020/2024**, **DCS**, and **X‑Plane 12**.
 
 ## 📸 Screenshots
 
-> Replace these image paths when I find the time to take screenshots... note for self
 
 ### Main Menu
 <img width="573" height="256" alt="image" src="https://github.com/user-attachments/assets/4d139b6a-233c-406e-879e-0b2d0588aa55" />
