@@ -423,16 +423,22 @@ function Invoke-RestartBuiltIn {
     }
 
     if ($Config.Restart.OneDrive) {
-        $paths = @(
-            "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe",
-            "C:\Program Files\Microsoft OneDrive\OneDrive.exe"
-        )
-        foreach ($p in $paths) {
-            if (Test-Path $p) {
-                Start-ProcessSafe -Command $p -Args "/background"
-                break
-            }
-        }
+    # Path
+    $oneDrivePath = "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe"
+    if (-not (Test-Path $oneDrivePath)) { 
+        $oneDrivePath = "C:\Program Files\Microsoft OneDrive\OneDrive.exe" 
+    }
+
+    if (Test-Path $oneDrivePath) {
+        # automatic start via Explorer
+        # /background SIlent mode
+        Start-Process "explorer.exe" -ArgumentList "`"$oneDrivePath`" /background"
+        
+        Write-Log "OneDrive started via Explorer (non-elevated)."
+        Write-Success "OneDrive succesful started."
+    } else {
+        Write-Log "OneDrive Pfad not found." -Level WARN
+        Write-Warn "OneDrive executable not found."
     }
 
     if ($Config.Restart.CCleaner) {
