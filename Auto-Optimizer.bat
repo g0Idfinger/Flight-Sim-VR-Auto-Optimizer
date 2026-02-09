@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.7)
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.7b)
 :: Optimized
 :: ============================================================
 
