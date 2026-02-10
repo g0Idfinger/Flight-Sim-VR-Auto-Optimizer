@@ -199,22 +199,31 @@ if "%LAUNCH_METHOD%"=="DCS_STORE" (
     set "DCS_BIN="
     set "DCS_UPD="
     set "DEBUG_DCS=1"
-
-    rem --- 0) Registry probe for the install root (bin first) ---
-    if not defined DCS_BIN (
-        for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
-            rem Pattern A: <Drive>:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe 
-            if exist "%%D:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" ( 
-                set "DCS_BIN=%%D:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" goto :found_dcs 
-            ) 
-            rem Pattern B: <Drive>:\Eagle Dynamics\DCS World\bin\DCS.exe 
-            if exist "%%D:\Eagle Dynamics\DCS World\bin\DCS.exe" (
-                set "DCS_BIN=%%D:\Eagle Dynamics\DCS World\bin\DCS.exe" goto :found_dcs 
-            ) 
-        ) 
+    rem --- Scan all drives for DCS ---
+    for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z
+    ) do (
+        rem Pattern A
+        if exist "%%D:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" (
+            set "DCS_BIN=%%D:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe"
+            goto :launch_dcs
+        )
+        rem Pattern B
+        if exist "%%D:\Eagle Dynamics\DCS World\bin\DCS.exe" (
+            set "DCS_BIN=%%D:\Eagle Dynamics\DCS World\bin\DCS.exe"
+            goto :launch_dcs
+        )
     )
 )
-:found_dcs
+:launch_dcs 
+if defined DCS_BIN (
+    echo [%TIME%] [LAUNCH] DCS path: !DCS_BIN!>>"%LOGFILE%"
+    start "" "!DCS_BIN!" 
+) else (
+    echo [%TIME%] [ERROR] DCS Standalone not found>>"%LOGFILE%"
+    echo DCS Standalone not found!
+    timeout /t 3 >nul
+    goto RESTORE
+)
 
 if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
     call :find_on_drives "X-Plane 12\X-Plane.exe" XPLANE_EXE
