@@ -202,54 +202,19 @@ if "%LAUNCH_METHOD%"=="DCS_STORE" (
 
     rem --- 0) Registry probe for the install root (bin first) ---
     if not defined DCS_BIN (
-        call :dcs_from_registry DCS_ROOT
-        if defined DCS_ROOT (
-            if exist "!DCS_ROOT!\bin\DCS.exe" set "DCS_BIN=!DCS_ROOT!\bin\DCS.exe"
-            if not defined DCS_BIN if exist "!DCS_ROOT!\bin\DCS_updater.exe" set "DCS_UPD=!DCS_ROOT!\bin\DCS_updater.exe"
-            if not defined DCS_BIN if exist "!DCS_ROOT!\bin-mt\DCS.exe" set "DCS_BIN=!DCS_ROOT!\bin-mt\DCS.exe"
-            if defined DCS_BIN echo [%TIME%] [DCS_REG] Root=!DCS_ROOT! Bin=!DCS_BIN!>>"%LOGFILE%"
-            if not defined DCS_BIN if defined DCS_UPD echo [%TIME%] [DCS_REG] Root=!DCS_ROOT! Upd=!DCS_UPD!>>"%LOGFILE%"
-        ) else (
-            echo [%TIME%] [DCS_REG] No registry root found>>"%LOGFILE%"
-        )
-    )
-
-    rem --- 1) Drive scan (bin first, then bin-mt), all common layouts ---
-    if not defined DCS_BIN call :find_on_drives_pf "Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
-    if not defined DCS_BIN call :find_on_drives_pf "Program Files\Eagle Dynamics\DCS World\bin-mt\DCS.exe" DCS_BIN
-
-    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
-    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin-mt\DCS.exe" DCS_BIN
-
-    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World OpenBeta\bin\DCS.exe" DCS_BIN
-    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World OpenBeta\bin-mt\DCS.exe" DCS_BIN
-
-    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World Open Beta\bin\DCS.exe" DCS_BIN
-    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World Open Beta\bin-mt\DCS.exe" DCS_BIN
-
-    if not defined DCS_BIN call :find_on_drives_pf "games\Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
-    if not defined DCS_BIN call :find_on_drives_pf "games\Eagle Dynamics\DCS World\bin-mt\DCS.exe" DCS_BIN
-
-    rem --- 1b) Fallback to updater (bin first), all common layouts ---
-    if not defined DCS_BIN call :find_on_drives_pf "Eagle Dynamics\DCS World\bin\DCS_updater.exe" DCS_UPD
-    if not defined DCS_UPD call :find_on_drives_pf "Eagle Dynamics\DCS World OpenBeta\bin\DCS_updater.exe" DCS_UPD
-    if not defined DCS_UPD call :find_on_drives_pf "Eagle Dynamics\DCS World Open Beta\bin\DCS_updater.exe" DCS_UPD
-
-    rem --- 2) Launch using the full path (no pushd/popd) ---
-    if defined DCS_BIN (
-        echo [%TIME%] [LAUNCH] DCS path: !DCS_BIN!>>"%LOGFILE%"
-        start "" "!DCS_BIN!"
-    ) else if defined DCS_UPD (
-        echo [%TIME%] [LAUNCH] DCS via updater: !DCS_UPD!>>"%LOGFILE%"
-        start "" "!DCS_UPD!"
-    ) else (
-        echo [%TIME%] [ERROR] DCS Standalone not found>>"%LOGFILE%"
-        echo DCS Standalone not found!
-        timeout /t 3 >nul
-        goto RESTORE
+        for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
+            rem Pattern A: <Drive>:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe 
+            if exist "%%D:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" ( 
+                set "DCS_BIN=%%D:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" goto :found_dcs 
+            ) 
+            rem Pattern B: <Drive>:\Eagle Dynamics\DCS World\bin\DCS.exe 
+            if exist "%%D:\Eagle Dynamics\DCS World\bin\DCS.exe" (
+                set "DCS_BIN=%%D:\Eagle Dynamics\DCS World\bin\DCS.exe" goto :found_dcs 
+            ) 
+        ) 
     )
 )
-
+:found_dcs
 
 if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
     call :find_on_drives "X-Plane 12\X-Plane.exe" XPLANE_EXE
