@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.7b)
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.8c)
 :: Optimized
 :: ============================================================
 
@@ -95,17 +95,17 @@ if "%choice%"=="1" (
     set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
 ) else if "%choice%"=="7" (
     set "LAUNCH_METHOD=DCS_STORE" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Standalone)"
-) else if "%choice%"=="8" (
+) else if "%choice%"=="4" (
     set "STEAM_APPID=2014780" & set "GAME_EXE=X-Plane.exe" & set "VERSION_NAME=X-Plane 12 (Steam)"
-) else if "%choice%"=="9" (
+) else if "%choice%"=="8" (
     set "LAUNCH_METHOD=XPLANE_STANDALONE" & set "GAME_EXE=X-Plane.exe" & set "VERSION_NAME=X-Plane 12 (Standalone)"
-) else if "%choice%"=="10" (
+) else if "%choice%"=="9" (
     set "GAME_EXE=AssettoCorsaEVO.exe" & set "VERSION_NAME=Assetto Corsa EVO (VR)" & set "LAUNCH_METHOD=VR_ACE"
-) else if "%choice%"=="11" (
+) else if "%choice%"=="10" (
     set "GAME_EXE=AssettoCorsaEVO.exe" & set "VERSION_NAME=Assetto Corsa EVO (2D)" & set "LAUNCH_METHOD=ACE_2D"
-) else if "%choice%"=="12" (
+) else if "%choice%"=="11" (
     set "LAUNCH_METHOD=AMS2_OC" & set "VERSION_NAME=Automobilista 2 (VR - OpenComposite)"
-) else if "%choice%"=="13" (
+) else if "%choice%"=="12" (
     set "LAUNCH_METHOD=AMS2_2D" & set "VERSION_NAME=Automobilista 2 (2D)"
 ) else (
     if not defined VERSION_NAME set "choice="
@@ -124,16 +124,16 @@ echo.
 echo %ESC%[32m[1] MSFS 2024 (Steam)%ESC%[0m
 echo %ESC%[32m[2] MSFS 2020 (Steam)%ESC%[0m
 echo %ESC%[32m[3] DCS World (Steam)%ESC%[0m
-echo %ESC%[32m[8] X-Plane 12 (Steam)%ESC%[0m
+echo %ESC%[32m[4] X-Plane 12 (Steam)%ESC%[0m
 echo.
 echo %ESC%[33m[5] MSFS 2024 (Store / GamePass)%ESC%[0m
 echo %ESC%[33m[6] MSFS 2020 (Store / GamePass)%ESC%[0m
 echo %ESC%[33m[7] DCS World (Standalone)%ESC%[0m
-echo %ESC%[33m[9] X-Plane 12 (Standalone)%ESC%[0m
-echo %ESC%[32m[10] Assetto Corsa EVO (VR OpenXR)%ESC%[0m
-echo %ESC%[33m[11] Assetto Corsa EVO (2D)%ESC%[0m
-echo %ESC%[32m[12] Automobilista 2 (VR - OpenComposite)%ESC%[0m
-echo %ESC%[33m[13] Automobilista 2 (2D)%ESC%[0m
+echo %ESC%[33m[8] X-Plane 12 (Standalone)%ESC%[0m
+echo %ESC%[32m[9] Assetto Corsa EVO (VR OpenXR)%ESC%[0m
+echo %ESC%[33m[10] Assetto Corsa EVO (2D)%ESC%[0m
+echo %ESC%[32m[11] Automobilista 2 (VR - OpenComposite)%ESC%[0m
+echo %ESC%[33m[12] Automobilista 2 (2D)%ESC%[0m
 echo.
 echo %ESC%[37m[B] Back to Main Menu%ESC%[0m
 echo %ESC%[31m[X] Exit%ESC%[0m
@@ -154,9 +154,9 @@ goto PREP_FLOW
 :: [1/4] PREP (driven by config)
 :: -----------------------------
 echo [1/4] Preparing system...
-for /f "tokens=3 delims=:()" %%G in ('powercfg /getactivescheme ^| findstr /I "GUID"') do set "PREV_PWR=%%G"
+rem Capture current active GUID (correct parsing)
+for /f "tokens=4" %%G in ('powercfg /getactivescheme') do set "PREV_PWR=%%G"
 call :ensure_ultimate
-echo [%TIME%] [PREP] Power Plan active: %VERSION_NAME% >> "%LOGFILE%"
 
 :: Built-in app kills (toggleable)
 call :kill_if "OneDrive.exe"       "!KILL_ONEDRIVE!"       "OneDrive killed"
@@ -185,130 +185,65 @@ if exist "C:\Program Files\Virtual Desktop Streamer\VirtualDesktop.Streamer.exe"
 )
 
 :: [3/4] LAUNCH
+:: [3/4] LAUNCH (ISOLATED & SAFE)
+
+call :LAUNCH_DISPATCH
+goto AFTER_LAUNCH
+
+
+:LAUNCH_DISPATCH
+
 if "%LAUNCH_METHOD%"=="STEAM" (
+    echo [%TIME%] [LAUNCH] Steam AppID %STEAM_APPID% >> "%LOGFILE%"
     start "" "steam://run/%STEAM_APPID%"
+    goto :eof
 )
 
 if "%LAUNCH_METHOD%"=="STORE" (
-    echo [%TIME%] [LAUNCH] Store-URI: !STORE_URI! >> "%LOGFILE%"
+    echo [%TIME%] [LAUNCH] Store URI %STORE_URI% >> "%LOGFILE%"
     powershell -NoProfile -Command "Start-Process $env:STORE_URI -ArgumentList ' -FastLaunch'"
+    goto :eof
 )
-
 
 if "%LAUNCH_METHOD%"=="DCS_STORE" (
-    set "DCS_BIN="
-    set "DCS_UPD="
-    set "DEBUG_DCS=1"
-    rem --- Scan all drives for DCS ---
-    for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z
-    ) do (
-        rem Pattern A
-        if exist "%%D:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe" (
-            set "DCS_BIN=%%D:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe"
-            goto :launch_dcs
-        )
-        rem Pattern B
-        if exist "%%D:\Eagle Dynamics\DCS World\bin\DCS.exe" (
-            set "DCS_BIN=%%D:\Eagle Dynamics\DCS World\bin\DCS.exe"
-            goto :launch_dcs
-        )
-        rem Pattern C
-        if exist "%%D:\DCS World\bin\DCS.exe" (
-            set "DCS_BIN=%%D:\DCS World\bin\DCS.exe"
-            goto :launch_dcs
-        )
-        rem Pattern D
-        if exist "%%D:\games\DCS World\Eagle Dynamics\DCS World\bin\DCS.exe" (
-            set "DCS_BIN=%%D:\games\DCS World\Eagle Dynamics\DCS World\bin\DCS.exe"
-            goto :launch_dcs
-        )
-    )
-)
-:launch_dcs 
-if defined DCS_BIN (
-    echo [%TIME%] [LAUNCH] DCS path: !DCS_BIN!>>"%LOGFILE%"
-    start "" "!DCS_BIN!" 
-) else (
-    echo [%TIME%] [ERROR] DCS Standalone not found>>"%LOGFILE%"
-    echo DCS Standalone not found!
-    timeout /t 3 >nul
-    goto RESTORE
+    call :LAUNCH_DCS_STANDALONE
+    goto :eof
 )
 
 if "%LAUNCH_METHOD%"=="XPLANE_STANDALONE" (
-    call :find_on_drives "X-Plane 12\X-Plane.exe" XPLANE_EXE
-    if defined XPLANE_EXE (
-        pushd "!XPLANE_EXE:\X-Plane.exe=!"
-        start "" "X-Plane.exe"
-        popd
-    ) else (
-        echo [%TIME%] [ERROR] X-Plane 12 Standalone not found >> "%LOGFILE%"
-        echo X-Plane 12 Standalone not found!
-        timeout /t 3 >nul
-        goto RESTORE
-    )
+    call :LAUNCH_XPLANE_STANDALONE
+    goto :eof
 )
 
 if "%LAUNCH_METHOD%"=="AMS2_OC" (
-    echo [%TIME%] [LAUNCH] Starting Automobilista 2 VR >> "%LOGFILE%"
-    call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Automobilista 2\AMS2AVX.exe" AMS2_EXE
-    if not defined AMS2_EXE call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Automobilista 2\ams2.exe" AMS2_EXE
-    if defined AMS2_EXE (
-        pushd "!AMS2_EXE:\AMS2AVX.exe=!"
-        start "" "AMS2AVX.exe" -vr -openvr
-        popd
-    ) else (
-        echo [%TIME%] [ERROR] AMS2AVX.exe not found >> "%LOGFILE%"
-        timeout /t 3 >nul
-        goto RESTORE
-    )
+    call :LAUNCH_AMS2_OC
+    goto :eof
 )
 
 if "%LAUNCH_METHOD%"=="AMS2_2D" (
-    echo [%TIME%] [LAUNCH] Starting Automobilista 2 2D >> "%LOGFILE%"
-    call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Automobilista 2\AMS2.exe" AMS2_EXE
-    if defined AMS2_EXE (
-        pushd "!AMS2_EXE:\AMS2.exe=!"
-        start "" "AMS2.exe"
-        popd
-    ) else (
-        echo [%TIME%] [ERROR] AMS2.exe not found >> "%LOGFILE%"
-        timeout /t 3 >nul
-        goto RESTORE
-    )
+    call :LAUNCH_AMS2_2D
+    goto :eof
 )
 
 if "%LAUNCH_METHOD%"=="VR_ACE" (
-    if not defined GAME_EXE (
-        echo [%TIME%] [ERROR] GAME_EXE not defined >> "%LOGFILE%"
-        goto RESTORE
-    )
-    call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\%GAME_EXE%" ACE_EXE
-    if defined ACE_EXE (
-        echo [%TIME%] [LAUNCH] Starting Assetto Corsa EVO VR >> "%LOGFILE%"
-        start "" "!ACE_EXE!" -vr -openxr
-    ) else (
-        echo [%TIME%] [ERROR] Assetto Corsa EVO not found >> "%LOGFILE%"
-        timeout /t 3 >nul
-        goto RESTORE
-    )
+    call :LAUNCH_ACE_VR
+    goto :eof
 )
 
 if "%LAUNCH_METHOD%"=="ACE_2D" (
-    if not defined GAME_EXE goto RESTORE
-    call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\%GAME_EXE%" ACE_EXE
-    if defined ACE_EXE (
-        echo [%TIME%] [LAUNCH] Starting Assetto Corsa EVO 2D >> "%LOGFILE%"
-        start "" "!ACE_EXE!"
-    ) else (
-        echo [%TIME%] [ERROR] Assetto Corsa EVO not found >> "%LOGFILE%"
-        timeout /t 3 >nul
-        goto RESTORE
-    )
+    call :LAUNCH_ACE_2D
+    goto :eof
 )
+
+echo [%TIME%] [ERROR] Unknown LAUNCH_METHOD=%LAUNCH_METHOD% >> "%LOGFILE%"
+goto RESTORE
+
+
+:AFTER_LAUNCH
 
 :: DETECTION
 set /a retry_count=0
+echo [%TIME%] [DETECT] Waiting for X-Plane process to appear... >> "%LOGFILE%"
 :WAIT_GAME
 set "ACTIVE_EXE="
 for %%E in (
@@ -320,6 +255,7 @@ for %%E in (
  "AssettoCorsaEVO.exe"
  "DCS_mt.exe"
  "DCS.exe"
+ "xplane.exe"
 ) do (
     tasklist /NH /FI "IMAGENAME eq %%~E" | find /i "%%~E" >nul
     if not errorlevel 1 set "ACTIVE_EXE=%%~E"
@@ -407,30 +343,33 @@ goto RESTORE
 :: Ensure Ultimate Performance power plan
 :: -----------------------------
 :ensure_ultimate
-setlocal EnableDelayedExpansion
 set "ULT_BUILTIN=e9a42b02-d5df-448d-aa00-03f14749eb61"
 set "ULT_GUID="
+set "TEMP_ULT=0"
 
-powercfg /list | findstr /I "%ULT_BUILTIN%" >nul
+rem Always create a temporary Ultimate plan (language-safe, deterministic)
+for /f "tokens=4" %%G in ('powercfg -duplicatescheme %ULT_BUILTIN%') do (
+    set "ULT_GUID=%%G"
+    set "TEMP_ULT=1"
+)
+
+rem If creation failed, fallback to High Performance
+if not defined ULT_GUID (
+    echo [%TIME%] [PREP] Ultimate creation failed; falling back to High Performance>>"%LOGFILE%"
+    goto :fallback_high
+)
+
+rem Try to activate the temporary Ultimate plan
+powercfg /setactive %ULT_GUID% >nul 2>&1
 if not errorlevel 1 (
-    set "ULT_GUID=%ULT_BUILTIN%"
-) else (
-    for /f "tokens=3 delims=:()" %%G in ('
-        powercfg -duplicatescheme %ULT_BUILTIN% 2^>nul ^| findstr /I "GUID"
-    ') do set "ULT_GUID=%%G"
+    echo [%TIME%] [PREP] Power Plan active: Ultimate Performance ^(%ULT_GUID%^)>>"%LOGFILE%"
+    goto :eof
 )
 
-if defined ULT_GUID (
-    powercfg /setactive !ULT_GUID! >nul 2>&1
-    if not errorlevel 1 (
-        echo [%TIME%] [PREP] Power Plan active: Ultimate Performance (!ULT_GUID!)>>"%LOGFILE%"
-        endlocal & goto :eof
-    )
-)
-
+:fallback_high
 echo [%TIME%] [PREP] Ultimate unavailable/failed; falling back to High Performance>>"%LOGFILE%"
 powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
-endlocal & goto :eof
+goto :eof
 
 :: -----------------------------
 :: [4/4] RESTORE (driven by config)
@@ -447,6 +386,10 @@ if defined PREV_PWR (
     powercfg /setactive %PREV_PWR% >nul 2>&1
 ) else (
     powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e >nul 2>&1
+)
+
+if "%TEMP_ULT%"=="1" (
+    powercfg -delete %ULT_GUID% >nul 2>&1
 )
 
 echo [%TIME%] [RESTORE] System reverted >> "%LOGFILE%"
@@ -876,26 +819,30 @@ goto :eof
 ::   <D>:\Program Files\%1
 ::   <D>:\Program Files (x86)\%1
 :: -----------------------------
-:find_on_drives_pf
-setlocal
+:find_on_drives
+setlocal enabledelayedexpansion
 set "rel=%~1"
 set "outvar=%~2"
 set "found="
-for %%D in (C D E F G H I J) do (
-  for %%P in (
-    "%%D:\%rel%"
-    "%%D:\Program Files\%rel%"
-    "%%D:\Program Files (x86)\%rel%"
-  ) do (
-    if defined DEBUG_DCS echo [%TIME%] [DCS_SCAN] Try: %%~P >> "%LOGFILE%"
-    if exist "%%~P" (
-      set "found=%%~P"
-      goto :_done_pf
+
+rem Scan drives C: to Z:
+for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
+    rem Check possible locations
+    for %%P in (
+        "%%D:\%rel%"
+        "%%D:\Program Files\%rel%"
+        "%%D:\Program Files (x86)\%rel%"
+    ) do (
+        if exist "%%~P" (
+            set "found=%%~P"
+            goto :_done
+        )
     )
-  )
 )
-:_done_pf
-endlocal & if defined found set "%outvar%=%found%"
+
+rem Still not found
+:_done
+endlocal & set "%outvar%=%found%"
 goto :eof
 
 :: -----------------------------
@@ -920,4 +867,104 @@ for %%K in (
 )
 :_found_root
 endlocal & if defined root set "%outvar%=%root%"
+
+:LAUNCH_DCS_STANDALONE
+set "DCS_BIN="
+call :dcs_from_registry DCS_ROOT
+if defined DCS_ROOT if exist "%DCS_ROOT%\bin\DCS.exe" set "DCS_BIN=%DCS_ROOT%\bin\DCS.exe"
+
+if not defined DCS_BIN (
+    call :find_on_drives "Eagle Dynamics\DCS World\bin\DCS.exe" DCS_BIN
+)
+
+if defined DCS_BIN (
+    echo [%TIME%] [LAUNCH] DCS Standalone: %DCS_BIN% >> "%LOGFILE%"
+    start "" "%DCS_BIN%"
+    goto :eof
+)
+
+echo [%TIME%] [ERROR] DCS Standalone not found >> "%LOGFILE%"
+echo DCS Standalone not found!
+timeout /t 3 >nul
+goto RESTORE
+
+:LAUNCH_XPLANE_STANDALONE
+call :find_on_drives "X-Plane 12\X-Plane.exe" XP_PATH
+
+if not defined XP_PATH (
+    echo [ERROR] X-Plane 12 Standalone not found >> "%LOGFILE%"
+    goto :restore
+)
+
+echo [INFO] X-Plane found at %XP_PATH%
+echo [LAUNCH] Starting X-Plane 12 Standalone
+start "" "%XP_PATH%"
+echo [%TIME%] [LAUNCH] X-Plane started >> "%LOGFILE%"
+goto :eof
+
+:LAUNCH_AMS2_OC
+call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Automobilista 2\AMS2AVX.exe" AMS2_EXE
+if defined AMS2_EXE (
+    pushd "%~dpAMS2_EXE%"
+    start "" "AMS2AVX.exe" -vr -openvr
+    popd
+    goto :eof
+)
+echo [%TIME%] [ERROR] AMS2AVX.exe not found >> "%LOGFILE%"
+goto RESTORE
+
+:LAUNCH_AMS2_2D
+call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Automobilista 2\AMS2.exe" AMS2_EXE
+if defined AMS2_EXE (
+    pushd "%~dpAMS2_EXE%"
+    start "" "AMS2.exe"
+    popd
+    goto :eof
+)
+echo [%TIME%] [ERROR] AMS2.exe not found >> "%LOGFILE%"
+goto RESTORE
+
+:LAUNCH_ACE_VR
+call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\AssettoCorsaEVO.exe" ACE_EXE
+if defined ACE_EXE (
+    start "" "%ACE_EXE%" -vr -openxr
+    goto :eof
+)
+echo [%TIME%] [ERROR] Assetto Corsa EVO not found >> "%LOGFILE%"
+goto RESTORE
+
+:LAUNCH_ACE_2D
+call :find_on_drives "Program Files (x86)\Steam\steamapps\common\Assetto Corsa EVO\AssettoCorsaEVO.exe" ACE_EXE
+if defined ACE_EXE (
+    start "" "%ACE_EXE%"
+    goto :eof
+)
+echo [%TIME%] [ERROR] Assetto Corsa EVO not found >> "%LOGFILE%"
+goto RESTORE
+
+:: -----------------------------
+:: MSFS 2024 Store/GamePass detection helper
+:: -----------------------------
+:MSFS2024_STORE_AUTO
+set "MSFS_STORE_PATH="
+for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
+    if exist "%%D:\Program Files\WindowsApps\Microsoft.FlightSimulator_8wekyb3d8bbwe\FlightSimulator.exe" (
+        set "MSFS_STORE_PATH=%%D:\Program Files\WindowsApps\Microsoft.FlightSimulator_8wekyb3d8bbwe\FlightSimulator.exe"
+        goto :_msfs_found
+    )
+    if exist "%%D:\Program Files\Microsoft Flight Simulator\FlightSimulator.exe" (
+        set "MSFS_STORE_PATH=%%D:\Program Files\Microsoft Flight Simulator\FlightSimulator.exe"
+        goto :_msfs_found
+    )
+)
+:_msfs_found
+if defined MSFS_STORE_PATH (
+    echo [%TIME%] [LAUNCH] MSFS 2024 Store detected: !MSFS_STORE_PATH! >> "%LOGFILE%"
+    start "" "!MSFS_STORE_PATH!"
+) else (
+    echo [%TIME%] [ERROR] MSFS 2024 Store/GamePass not found >> "%LOGFILE%"
+    echo MSFS 2024 Store/GamePass not found!
+    timeout /t 3 >nul
+    goto RESTORE
+)
 goto :eof
