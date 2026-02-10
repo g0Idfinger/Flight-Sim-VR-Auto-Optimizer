@@ -95,17 +95,17 @@ if "%choice%"=="1" (
     set "GAME_EXE=FlightSimulator.exe" & set "VERSION_NAME=MSFS 2020 (Store)"
 ) else if "%choice%"=="7" (
     set "LAUNCH_METHOD=DCS_STORE" & set "GAME_EXE=DCS.exe" & set "VERSION_NAME=DCS World (Standalone)"
-) else if "%choice%"=="8" (
+) else if "%choice%"=="4" (
     set "STEAM_APPID=2014780" & set "GAME_EXE=X-Plane.exe" & set "VERSION_NAME=X-Plane 12 (Steam)"
-) else if "%choice%"=="9" (
+) else if "%choice%"=="8" (
     set "LAUNCH_METHOD=XPLANE_STANDALONE" & set "GAME_EXE=X-Plane.exe" & set "VERSION_NAME=X-Plane 12 (Standalone)"
-) else if "%choice%"=="10" (
+) else if "%choice%"=="9" (
     set "GAME_EXE=AssettoCorsaEVO.exe" & set "VERSION_NAME=Assetto Corsa EVO (VR)" & set "LAUNCH_METHOD=VR_ACE"
-) else if "%choice%"=="11" (
+) else if "%choice%"=="10" (
     set "GAME_EXE=AssettoCorsaEVO.exe" & set "VERSION_NAME=Assetto Corsa EVO (2D)" & set "LAUNCH_METHOD=ACE_2D"
-) else if "%choice%"=="12" (
+) else if "%choice%"=="11" (
     set "LAUNCH_METHOD=AMS2_OC" & set "VERSION_NAME=Automobilista 2 (VR - OpenComposite)"
-) else if "%choice%"=="13" (
+) else if "%choice%"=="12" (
     set "LAUNCH_METHOD=AMS2_2D" & set "VERSION_NAME=Automobilista 2 (2D)"
 ) else (
     if not defined VERSION_NAME set "choice="
@@ -124,16 +124,16 @@ echo.
 echo %ESC%[32m[1] MSFS 2024 (Steam)%ESC%[0m
 echo %ESC%[32m[2] MSFS 2020 (Steam)%ESC%[0m
 echo %ESC%[32m[3] DCS World (Steam)%ESC%[0m
-echo %ESC%[32m[8] X-Plane 12 (Steam)%ESC%[0m
+echo %ESC%[32m[4] X-Plane 12 (Steam)%ESC%[0m
 echo.
 echo %ESC%[33m[5] MSFS 2024 (Store / GamePass)%ESC%[0m
 echo %ESC%[33m[6] MSFS 2020 (Store / GamePass)%ESC%[0m
 echo %ESC%[33m[7] DCS World (Standalone)%ESC%[0m
-echo %ESC%[33m[9] X-Plane 12 (Standalone)%ESC%[0m
-echo %ESC%[32m[10] Assetto Corsa EVO (VR OpenXR)%ESC%[0m
-echo %ESC%[33m[11] Assetto Corsa EVO (2D)%ESC%[0m
-echo %ESC%[32m[12] Automobilista 2 (VR - OpenComposite)%ESC%[0m
-echo %ESC%[33m[13] Automobilista 2 (2D)%ESC%[0m
+echo %ESC%[33m[8] X-Plane 12 (Standalone)%ESC%[0m
+echo %ESC%[32m[9] Assetto Corsa EVO (VR OpenXR)%ESC%[0m
+echo %ESC%[33m[10] Assetto Corsa EVO (2D)%ESC%[0m
+echo %ESC%[32m[11] Automobilista 2 (VR - OpenComposite)%ESC%[0m
+echo %ESC%[33m[12] Automobilista 2 (2D)%ESC%[0m
 echo.
 echo %ESC%[37m[B] Back to Main Menu%ESC%[0m
 echo %ESC%[31m[X] Exit%ESC%[0m
