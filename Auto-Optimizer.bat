@@ -212,6 +212,16 @@ if "%LAUNCH_METHOD%"=="DCS_STORE" (
             set "DCS_BIN=%%D:\Eagle Dynamics\DCS World\bin\DCS.exe"
             goto :launch_dcs
         )
+        rem Pattern C
+        if exist "%%D:\DCS World\bin\DCS.exe" (
+            set "DCS_BIN=%%D:\DCS World\bin\DCS.exe"
+            goto :launch_dcs
+        )
+        rem Pattern D
+        if exist "%%D:\games\DCS World\Eagle Dynamics\DCS World\bin\DCS.exe" (
+            set "DCS_BIN=%%D:\games\DCS World\Eagle Dynamics\DCS World\bin\DCS.exe"
+            goto :launch_dcs
+        )
     )
 )
 :launch_dcs 
