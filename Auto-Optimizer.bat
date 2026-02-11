@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: ============================================================
-:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.8c)
+:: UNIVERSAL SIM VR OPTIMIZER - Configurable Edition (v7.3.3.8d)
 :: Optimized
 :: ============================================================
 
@@ -479,17 +479,17 @@ echo 3 = DCS World (Steam)
 echo 5 = MSFS 2024 (Store/GamePass)
 echo 6 = MSFS 2020 (Store/GamePass)
 echo 7 = DCS World (Standalone)
-echo 8 = X-Plane 12 (Steam)
-echo 9 = X-Plane 12 (Standalone)
-echo 10 = Assetto Corsa EVO (VR)
-echo 11 = Assetto Corsa EVO (2D)
-echo 12 = Automobilista 2 (VR)
-echo 13 = Automobilista 2 (2D)
+echo 4 = X-Plane 12 (Steam)
+echo 8 = X-Plane 12 (Standalone)
+echo 9 = Assetto Corsa EVO (VR)
+echo 10 = Assetto Corsa EVO (2D)
+echo 11 = Automobilista 2 (VR)
+echo 12 = Automobilista 2 (2D)
 echo.
 echo [Enter] to clear (no default)
 set /p _def="Default sim number: "
 if "%_def%"=="" ( set "DEFAULT_SIM=" & goto CONFIG_MENU )
-for %%N in (1 2 3 5 6 7 8 9 10 11 12 13) do if "%%N"=="%_def%" ( set "DEFAULT_SIM=%%N" & goto CONFIG_MENU )
+for %%N in (1 2 3 5 6 7 8 9 10 11 12) do if "%%N"=="%_def%" ( set "DEFAULT_SIM=%%N" & goto CONFIG_MENU )
 echo Invalid selection. Press any key to continue...
 pause >nul
 goto SET_DEFAULT_SIM
