@@ -10,6 +10,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 set "SCRIPT_DIR=%~dp0"
 set "LOGFILE=%SCRIPT_DIR%sim_launcher.log"
 set "CFG=%SCRIPT_DIR%vr_opt.cfg"
+set "LAUNCH_IN_SHORTCUT=%1"
 
 :: ------------- ANSI init (once) -------------
 for /F %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
@@ -33,25 +34,95 @@ if /i "!AUTO_RUN_ON_START!"=="YES" (
 )
 
 :: -----------------------------
+:: Optional auto-run if the bat has a parameter (e.g., for shortcuts)
+:: -----------------------------
+if not "%LAUNCH_IN_SHORTCUT%"=="" (
+    call :RESOLVE_SIM "%LAUNCH_IN_SHORTCUT%"
+    if defined choice (
+        call :ADMIN_START
+        goto PREP_FLOW
+    ) 
+    rem else >> invalid parameter, continue to main menu
+)
+
+:: -----------------------------
 :: Main Menu
 :: -----------------------------
 :MAIN_MENU
 cls
+set "_main_choice="
 echo ============================================================
 echo %ESC%[36m        VR AUTO-OPTIMIZER - MAIN MENU%ESC%[0m
 echo ============================================================
 echo.
 echo %ESC%[32m[1] Launch Simulator (manual selection)%ESC%[0m
 echo %ESC%[33m[2] Configure App Controls%ESC%[0m
+rem If DEFAULT_SIM is set, show quick launch option
+if defined DEFAULT_SIM (
+    call :RESOLVE_SIM "!DEFAULT_SIM!"
+    if defined choice (
+        echo %ESC%[34m[3] Quick Launch: !VERSION_NAME!%ESC%[0m
+        echo %ESC%[35m[4] Create shortcut for default: !VERSION_NAME!%ESC%[0m
+        set "DEFAULT_SELECTION= [Default= !VERSION_NAME!]"
+    )
+)
 echo.
 echo %ESC%[31m[X] Exit%ESC%[0m
 echo.
 
-set /p _main_choice="Selection: "
+set /p _main_choice="Selection%DEFAULT_SELECTION%: "
+if "!_main_choice!"=="" if defined choice set "_main_choice=3"
 if /i "%_main_choice%"=="1" goto MENU
 if /i "%_main_choice%"=="2" goto CONFIG_MENU
+if /i "%_main_choice%"=="3" call :LAUNCH_DEFAULT_OR_SET
+if /i "%_main_choice%"=="4" call :CREATE_DEFAULT_SHORTCUT
 if /i "%_main_choice%"=="X" exit /b
 goto MAIN_MENU
+
+:: -----------------------------
+:: Launch default if set; else prompt to set, then launch
+:: -----------------------------
+:CREATE_DEFAULT_SHORTCUT
+cls
+echo ============================================================
+echo %ESC%[36m        VR AUTO-OPTIMIZER - Shortcut creation%ESC%[0m
+echo ============================================================
+setlocal
+set "SHORTCUT_NAME=Launch Optimized %VERSION_NAME%.lnk"
+set "SHORTCUT_PATH=%SCRIPT_DIR%\%SHORTCUT_NAME%"
+if exist "%SHORTCUT_PATH%" (
+    echo Shortcut already exists: "%SHORTCUT_PATH%"
+    echo.
+    echo Press any key to return to main menu...
+    pause >nul
+    goto MAIN_MENU
+) else (
+    call :RESOLVE_SIM "!DEFAULT_SIM!"
+    if not defined choice (
+        echo [!] DEFAULT_SIM value "!DEFAULT_SIM!" is invalid. Press any key to set a valid one...
+        pause >nul
+        goto SET_DEFAULT_SIM_AND_LAUNCH
+    )
+    powershell -NoProfile -Command ^
+        "$WshShell = New-Object -ComObject WScript.Shell; " ^
+        "$Shortcut = $WshShell.CreateShortcut('%SHORTCUT_PATH%'); " ^
+        "$Shortcut.TargetPath = '%~f0'; " ^
+        "$Shortcut.Arguments = '%choice%'; " ^
+        "$Shortcut.WorkingDirectory = '%SCRIPT_DIR%'; " ^
+        "$Shortcut.Save()"
+    echo Shortcut created: !SHORTCUT_PATH!
+    echo.
+    echo For better experience, run the shortcut as admin:
+    echo    - Right-click the .lnk file
+    echo    - Properties
+    echo    - Advanced
+    echo    - check 'Run as administrator'
+    echo    - OK..
+    echo.
+    echo Press any key to return to main menu...
+    pause >nul
+    goto MAIN_MENU
+)
 
 :: -----------------------------
 :: Launch default if set; else prompt to set, then launch
@@ -243,7 +314,7 @@ goto RESTORE
 
 :: DETECTION
 set /a retry_count=0
-echo [%TIME%] [DETECT] Waiting for X-Plane process to appear... >> "%LOGFILE%"
+echo [%TIME%] [DETECT] Waiting for process to appear... >> "%LOGFILE%"
 :WAIT_GAME
 set "ACTIVE_EXE="
 for %%E in (
@@ -347,10 +418,18 @@ set "ULT_BUILTIN=e9a42b02-d5df-448d-aa00-03f14749eb61"
 set "ULT_GUID="
 set "TEMP_ULT=0"
 
-rem Always create a temporary Ultimate plan (language-safe, deterministic)
-for /f "tokens=4" %%G in ('powercfg -duplicatescheme %ULT_BUILTIN%') do (
+rem If necessary, create a temporary Ultimate plan (language-safe, deterministic)
+for /f "tokens=4" %%G in ('powercfg /list ^| find /i "Ultimate"') do (
     set "ULT_GUID=%%G"
-    set "TEMP_ULT=1"
+    set "TEMP_ULT=0"
+    echo [%TIME%] [PREP] Power Plan found: Ultimate Performance ^(%%G^)>>"%LOGFILE%"
+)
+if not defined ULT_GUID (
+    for /f "tokens=4" %%G in ('powercfg -duplicatescheme %ULT_BUILTIN%') do (
+        set "ULT_GUID=%%G"
+        set "TEMP_ULT=1"
+        echo [%TIME%] [PREP] Temporary Power Plan created: Ultimate Performance ^(%ULT_GUID%^)>>"%LOGFILE%"
+    )
 )
 
 rem If creation failed, fallback to High Performance
@@ -538,7 +617,10 @@ set "_exe=%~1"
 set "_flag=%~2"
 set "_msg=%~3"
 if /i "!_flag!"=="YES" (
-    taskkill /f /im "!_exe!" /t >nul 2>&1 && echo [%TIME%] [PREP] !_msg! >> "%LOGFILE%"
+    tasklist /NH /FI "IMAGENAME eq !_exe!" | find /i "!_exe!" >nul
+    if not errorlevel 1 (
+        taskkill /f /im "!_exe!" /t >nul 2>&1 && echo [%TIME%] [PREP] !_msg! >> "%LOGFILE%"
+    )
 )
 goto :eof
 
@@ -550,7 +632,10 @@ if not defined CUST_K_COUNT goto :eof
 for /l %%I in (1,1,!CUST_K_COUNT!) do (
     set "proc=!CUST_K_%%I!"
     if not "!proc!"=="" (
-        taskkill /f /im "!proc!" /t >nul 2>&1 && echo [%TIME%] [PREP] Custom kill: !proc! >> "%LOGFILE%"
+        tasklist /NH /FI "IMAGENAME eq !proc!" | find /i "!proc!" >nul
+        if not errorlevel 1 (
+            taskkill /f /im "!proc!" /t >nul 2>&1 && echo [%TIME%] [PREP] Custom kill: !proc! >> "%LOGFILE%"
+        )
     )
 )
 goto :eof
@@ -860,13 +945,15 @@ for %%K in (
   "HKCU\SOFTWARE\Eagle Dynamics\DCS World"
   "HKCU\SOFTWARE\Eagle Dynamics\DCS World OpenBeta"
 ) do (
-  for /f "tokens=2,*" %%A in ('reg query %%K /v Path 2^>nul ^| find /i "Path"') do (
+  for /f "tokens=2,*" %%A in ('reg query %%K /v Path 2^>nul ^| findstr /i "Path"') do (
      set "root=%%B"
      goto :_found_root
   )
 )
 :_found_root
-endlocal & if defined root set "%outvar%=%root%"
+endlocal & set "%outvar%=%root%"
+goto :eof
+
 
 :LAUNCH_DCS_STANDALONE
 set "DCS_BIN="
