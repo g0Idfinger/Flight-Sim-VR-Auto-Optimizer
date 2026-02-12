@@ -1,5 +1,6 @@
 # VR Optimizer
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/ea1a9b21-7d66-4492-aa42-0af1491bb8b7" />
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/26ea0ee3-4a99-46ce-a964-5d07ce69842b" />
+
 
 
 
