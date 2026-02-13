@@ -1,12 +1,9 @@
 # VR Optimizer
-<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/26ea0ee3-4a99-46ce-a964-5d07ce69842b" />
-
-
-
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/01b9319f-e835-4f8a-be8c-23f55786696e" />
 
 # ✈ VR Auto-Optimizer
 
-**Version:** 7.4.1 (Stable Beta)  
+**Version:** 7.4.2 (Stable Beta)  
 **Platform:** Windows 10 / 11  
 **Framework:** .NET 8 (WPF, C#)
 
